@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import {
   branches, branchPace, calculateChart, elementMeta, identityMeta, interactionReading,
@@ -11,7 +11,7 @@ import { activities, classifyActivity, cycleReading, dateKey, dayReading, daySco
 
 type View = 'home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
-type ShareKind = 'profiles'|'elements'|'actions'|'summary'|'today'
+type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
 
 const STORE='mi-mapa.library.v1'
 const PILLAR_ORDER:PillarKey[]=['hour','day','month','year']
@@ -84,7 +84,18 @@ function ElementMark({element}:{element:ElementKey}){
   return <span className={`elementMark element-${element}`} aria-hidden="true"><i/><i/><i/></span>
 }
 
-function Brand(){return <div className="brand"><span>十</span><b>MI MAPA</b></div>}
+const menuItems:{view:View;label:string;hint:string;mark:string}[]=[
+  {view:'reading',label:'Mi lectura',hint:'Tu carta completa',mark:'十'},
+  {view:'today',label:'Hoy',hint:'Tu oportunidad del día',mark:'☀'},
+  {view:'calendar',label:'Calendario',hint:'Explora y busca fechas',mark:'▦'},
+  {view:'month',label:'Tu mes',hint:'El foco de este mes',mark:'◐'},
+  {view:'cycles',label:'Ciclos',hint:'Tu etapa actual',mark:'↻'},
+  {view:'home',label:'Tus cartas',hint:'Cambia de mapa',mark:'←'},
+]
+function Brand({onNavigate}:{onNavigate?:(view:View)=>void}){
+  if(!onNavigate)return <div className="brand"><span>十</span><b>MI MAPA</b></div>
+  return <details className="brandMenu"><summary aria-label="Abrir el menú de Mi Mapa"><span className="brand"><span>十</span><b>MI MAPA</b></span><i>⌄</i></summary><nav aria-label="Ir a otra parte de Mi Mapa">{menuItems.map(item=><button key={item.view} onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');onNavigate(item.view)}}><span>{item.mark}</span><b>{item.label}</b><small>{item.hint}</small></button>)}</nav></details>
+}
 
 export default function App(){
   const shared=useMemo(()=>new URLSearchParams(location.search).get('c'),[])
@@ -277,6 +288,7 @@ async function shareImage(chart:Chart,kind:ShareKind,downloadOnly=false,date?:st
   const daily=kind==='today'?dayReading(chart,date||todayInZone(chart.birth.timezone)):null
   drawPosterBase(ctx,meta)
   if(kind==='today'&&daily)drawTodayPoster(ctx,chart,daily)
+  else if(kind==='identity')drawIdentityPoster(ctx,chart)
   else if(kind==='profiles')drawProfilesPoster(ctx,chart)
   else if(kind==='elements')drawElementsPoster(ctx,chart)
   else if(kind==='actions')drawActionsPoster(ctx,chart)
@@ -315,6 +327,7 @@ function drawStemPosterIcon(ctx:CanvasRenderingContext2D,stem:StemKey,x:number,y
 function drawAnimalPosterIcon(ctx:CanvasRenderingContext2D,branch:keyof typeof branches,x:number,y:number,size:number,color:string){drawLineIcon(ctx,posterAnimalPaths[branch],x,y,size,color,Math.max(3,size/24))}
 function drawSeal(ctx:CanvasRenderingContext2D,x:number,y:number,radius:number,fill:string){ctx.save();ctx.globalAlpha=.18;ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=fill;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,radius-1,0,Math.PI*2);ctx.stroke();ctx.restore()}
 function drawProfilePosterCard(ctx:CanvasRenderingContext2D,chart:Chart,key:PillarKey,x:number,y:number,w:number,h:number){const pillar=chart.pillars[key],color=elementMeta[stems[pillar.stem].element].dark;ctx.fillStyle='rgba(255,255,255,.72)';roundRect(ctx,x,y,w,h,28);ctx.fill();ctx.strokeStyle='rgba(60,50,42,.1)';ctx.stroke();drawStemPosterIcon(ctx,pillar.stem,x+70,y+h/2,64,color);drawAnimalPosterIcon(ctx,pillar.branch,x+w-56,y+54,44,color);ctx.fillStyle='#3e3832';ctx.textAlign='left';ctx.font=posterFont(14,800);ctx.fillText(pillarMeta[key].eyebrow.toUpperCase(),x+125,y+44);ctx.font=posterFont(34,700,true);ctx.fillText(identityMeta[pillar.stem].name,x+125,y+88);ctx.font=posterFont(17,500);ctx.fillText(branches[pillar.branch].label,x+125,y+120);ctx.font=posterFont(14,600);ctx.fillStyle=color;ctx.fillText(pillarMeta[key].title.toUpperCase(),x+125,y+150)}
+function drawIdentityPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],polarity=chart.dayMaster.polarity==='yin'?'Yin':'Yang';ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText('MI DÍA MAESTRO',540,162);drawSeal(ctx,540,360,156,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,540,360,196,meta.dark);ctx.font=posterFont(fitPosterText(ctx,identity.name,820,118,72),760,true);ctx.fillText(identity.name,540,630);ctx.font=posterFont(31,520,true);drawPosterText(ctx,identity.headline,540,700,820,42,3,'center');ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,156,875,768,178,34);ctx.fill();ctx.strokeStyle='rgba(60,50,42,.1)';ctx.stroke();ctx.fillStyle=meta.dark;ctx.font=posterFont(14,800);ctx.fillText('ASÍ SE ENCUENTRA EN MI CARTA',540,925);ctx.font=posterFont(38,700,true);ctx.fillText(`${meta.label} ${polarity} · ${chart.dayMaster.strength}`,540,985);ctx.font=posterFont(20,500);ctx.fillText('Mi centro: la forma en que vuelvo a mí para decidir.',540,1025)}
 function drawProfilesPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem];ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(fitPosterText(ctx,'MIS CUATRO PERFILES',850,68,44),750,true);ctx.fillText('MIS CUATRO PERFILES',540,190);drawSeal(ctx,540,340,94,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,540,340,118,meta.dark);ctx.font=posterFont(fitPosterText(ctx,identity.name,760,86,54),700,true);ctx.fillText(identity.name,540,485);ctx.font=posterFont(26,500,true);drawPosterText(ctx,identity.headline,540,540,790,34,2,'center');PILLAR_ORDER.forEach((key,index)=>drawProfilePosterCard(ctx,chart,key,index%2?552:88,index<2?650:852,440,176))}
 function drawElementPosterSeal(ctx:CanvasRenderingContext2D,element:ElementKey,value:number,max:number,x:number,y:number){const color=elementMeta[element].color,r=64+value/max*25;ctx.strokeStyle='rgba(60,50,42,.12)';ctx.lineWidth=10;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.strokeStyle=color;ctx.lineCap='round';ctx.beginPath();ctx.arc(x,y,r,-Math.PI/2,-Math.PI/2+Math.PI*2*(.18+.82*value/max));ctx.stroke();drawStemPosterIcon(ctx,elementStem[element],x,y,72,elementMeta[element].dark);ctx.fillStyle=elementMeta[element].dark;ctx.textAlign='center';ctx.font=posterFont(15,800);ctx.fillText(elementMeta[element].label.toUpperCase(),x,y+r+32)}
 function drawElementsPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],max=Math.max(...Object.values(chart.elements));ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText(`${identity.name.toUpperCase()} · MIS RECURSOS`,540,162);ctx.font=posterFont(fitPosterText(ctx,'MIS CINCO ELEMENTOS',870,68,42),760,true);ctx.fillText('MIS CINCO ELEMENTOS',540,240);const positions=[[180,430],[540,390],[900,430],[350,650],[730,650]];ELEMENT_ORDER.forEach((element,index)=>drawElementPosterSeal(ctx,element,chart.elements[element],max,positions[index][0],positions[index][1]));ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,90,805,900,300,36);ctx.fill();drawStemPosterIcon(ctx,elementStem[strong],195,920,100,elementMeta[strong].dark);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(15,800);ctx.fillText('EL RECURSO QUE MÁS USAS',285,860);ctx.font=posterFont(44,700,true);ctx.fillText(elementMeta[strong].label,285,920);ctx.font=posterFont(25,500,true);drawPosterText(ctx,`${elementMeta[strong].sentence} ${elementMeta[low].article.charAt(0).toUpperCase()+elementMeta[low].article.slice(1)} también puede crecer con práctica.`,285,970,620,34,4)}
@@ -326,8 +339,8 @@ function drawSummaryPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=
 function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onReplay:()=>void;onTool:(view:View)=>void}){
   const identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],voidCopy=voidReading(chart)
   return <main className="reading">
-    <header className="readingTop"><button onClick={onHome}>← Tus cartas</button><Brand/><button onClick={onReplay}>Ver historias</button></header>
-    <section className="readingHero"><div><p className="eyebrow">ESTE ERES TÚ</p><h1>{identity.name}</h1><p>{identity.headline}</p><Technical>{stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</Technical></div><Glyph stem={chart.dayMaster.stem} size={160}/></section>
+    <header className="readingTop"><button onClick={onHome}>← Tus cartas</button><Brand onNavigate={target=>target==='home'?onHome():target==='reading'?window.scrollTo({top:0,behavior:'smooth'}):onTool(target)}/><button onClick={onReplay}>Ver historias</button></header>
+    <section className="readingHero"><div><p className="eyebrow">ESTE ERES TÚ</p><h1>{identity.name}</h1><p>{identity.headline}</p><div className="heroActions"><Technical>{stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</Technical><ShareButton kind="identity" chart={chart} downloadOnly>Descargar mi perfil</ShareButton></div></div><Glyph stem={chart.dayMaster.stem} size={160}/></section>
     <section className="readingSection introReading"><p>{identity.body}</p><p>{identity.friction}</p></section>
     <div className="readingBody">
       <aside className="readingRail"><p>EXPLORA TU MAPA</p><nav aria-label="Secciones de tu lectura">
@@ -348,7 +361,7 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
         <section className="readingSection" id="palacios"><SectionHead kicker="TUS PALACIOS" title="Cuatro áreas donde se expresa tu carta."/><div className="palaces">{PILLAR_ORDER.map(key=><article key={key}><small>{pillarMeta[key].eyebrow}</small><h3>{pillarMeta[key].title}</h3><p>{pillarMeta[key].intro}</p></article>)}</div></section>
         <TemporalStrip chart={chart} onTool={onTool}/>
         <ExpertChart chart={chart}/>
-        <section className="readingSection downloads"><SectionHead kicker="PARA GUARDAR" title="Descarga cualquiera de tus imágenes."/><div><ShareButton kind="summary" chart={chart} downloadOnly>Resumen completo</ShareButton><ShareButton kind="profiles" chart={chart} downloadOnly>Cuatro perfiles</ShareButton><ShareButton kind="elements" chart={chart} downloadOnly>Gráfica de elementos</ShareButton></div></section>
+        <section className="readingSection downloads"><SectionHead kicker="PARA GUARDAR" title="Descarga cualquiera de tus imágenes."/><div><ShareButton kind="identity" chart={chart} downloadOnly>Día Maestro</ShareButton><ShareButton kind="summary" chart={chart} downloadOnly>Resumen completo</ShareButton><ShareButton kind="profiles" chart={chart} downloadOnly>Cuatro perfiles</ShareButton><ShareButton kind="elements" chart={chart} downloadOnly>Gráfica de elementos</ShareButton></div></section>
       </div>
     </div>
     <footer><Brand/><p>BaZi por dentro. Palabras de todos los días por fuera.</p><button onClick={onHome}>Volver a mis cartas</button></footer>
@@ -356,27 +369,31 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
 }
 function ExpertChart({chart}:{chart:Chart}){
   const order:PillarKey[]=['year','month','day','hour']
-  const [pick,setPick]=useState<{pillar:PillarKey;kind:'stem'|'branch'|'hidden';stem?:StemKey}>({pillar:'day',kind:'stem'})
+  const [pick,setPick]=useState<{pillar:PillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:'day',kind:'stem'})
   const pillar=chart.pillars[pick.pillar]
   const selectedStem=pick.kind==='hidden'?pick.stem!:pillar.stem
-  const detail=pick.kind==='branch'
+  const voidCopy=voidReading(chart)
+  const detail=pick.kind==='void'
+    ?{title:voidCopy.title,body:voidCopy.body,technical:`Vacío · ${chart.voidBranches.map(branch=>branches[branch].label).join(' · ')}`}
+    :pick.kind==='branch'
     ?{title:`${branches[pillar.branch].label}: tu ritmo de fondo`,body:branchPace[pillar.branch],technical:`Rama terrestre · ${elementMeta[branches[pillar.branch].element].label}`}
     :pick.kind==='hidden'
       ?{title:`${identityMeta[selectedStem].name} trabaja desde el fondo`,body:`Esta parte suele aparecer después de conocerte mejor. Funciona como un recurso interno: ${identityMeta[selectedStem].body.charAt(0).toLowerCase()+identityMeta[selectedStem].body.slice(1)}`,technical:`Energía de fondo · ${stems[selectedStem].label}`}
       :{title:identityMeta[selectedStem].headline,body:identityMeta[selectedStem].body,technical:`Tallo celestial ${stems[selectedStem].han} · ${stems[selectedStem].label}`}
+  const explanation=(className:string)=><aside className={`expertExplanation ${className}`} aria-live="polite">{pick.kind==='void'?<span className="voidGlyph">○</span>:pick.kind==='branch'?<AnimalGlyph branch={pillar.branch} size={52}/>:<Glyph stem={selectedStem} size={52}/>}<div><small>{pillarMeta[pick.pillar].eyebrow} · {pick.kind==='stem'?'lo visible':pick.kind==='branch'?'la base':pick.kind==='hidden'?'lo que opera detrás':'lo que desarrollas a tu manera'}</small><h3>{detail.title}</h3><p>{detail.body}</p><Technical>{detail.technical}</Technical></div></aside>
   const correction=Math.round(chart.birth.solarCorrectionMinutes)
   return <section className="readingSection expertSection" id="carta-completa">
     <SectionHead kicker="TU CARTA COMPLETA" title="La estructura técnica, traducida para que sí se pueda leer."/>
     <p className="expertIntro">Esta es la carta que vería una persona experta. Toca cualquier símbolo para entender qué representa sin tener que aprenderte primero toda la nomenclatura.</p>
     <div className="solarReceipt"><span>HORA QUE ESCRIBISTE<b>{chart.birth.time}</b></span><i>→</i><span>HORA SOLAR USADA<b>{chart.birth.calculationTime}</b></span><small>{correction>=0?'+':''}{correction} min · horario histórico calculado automáticamente en {chart.birth.place}</small></div>
-    <div className="expertChart" role="group" aria-label="Tus cuatro pilares completos">{order.map(key=>{const item=chart.pillars[key];return <article className={key==='day'?'dayColumn':''} key={key}>
+    <div className="expertChart" role="group" aria-label="Tus cuatro pilares completos">{order.map(key=>{const item=chart.pillars[key];return <Fragment key={key}><article className={key==='day'?'dayColumn':''}>
       <header><small>{pillarMeta[key].eyebrow}</small><b>{pillarMeta[key].title}</b>{key==='day'&&<em>TU CENTRO</em>}</header>
       <button className="expertStem" aria-pressed={pick.pillar===key&&pick.kind==='stem'} onClick={()=>setPick({pillar:key,kind:'stem'})} style={{'--cell':elementMeta[stems[item.stem].element].soft,'--cell-dark':elementMeta[stems[item.stem].element].dark} as CSSProperties}><small>CIELO</small><Glyph stem={item.stem} size={46}/><strong>{identityMeta[item.stem].name}</strong><span>{stems[item.stem].han} · {stems[item.stem].label}</span></button>
       <button className="expertBranch" aria-pressed={pick.pillar===key&&pick.kind==='branch'} onClick={()=>setPick({pillar:key,kind:'branch'})} style={{'--cell':elementMeta[branches[item.branch].element].soft,'--cell-dark':elementMeta[branches[item.branch].element].dark} as CSSProperties}><small>TIERRA</small><AnimalGlyph branch={item.branch} size={58}/><strong>{branches[item.branch].label}</strong><span>{elementMeta[branches[item.branch].element].label}</span></button>
       <div className="hiddenStems"><small>ENERGÍA DE FONDO</small>{item.hidden.map(hidden=><button key={hidden} aria-pressed={pick.pillar===key&&pick.kind==='hidden'&&pick.stem===hidden} onClick={()=>setPick({pillar:key,kind:'hidden',stem:hidden})} style={{'--chip':elementMeta[stems[hidden].element].soft,'--chip-dark':elementMeta[stems[hidden].element].dark} as CSSProperties}><Glyph stem={hidden} size={20}/><span>{identityMeta[hidden].name}</span></button>)}</div>
-      {chart.voidPillars.includes(key)&&<div className="voidBadge">○ Aquí toca tu vacío</div>}
-    </article>})}</div>
-    <aside className="expertExplanation" aria-live="polite">{pick.kind==='branch'?<AnimalGlyph branch={pillar.branch} size={52}/>:<Glyph stem={selectedStem} size={52}/>}<div><small>{pillarMeta[pick.pillar].eyebrow} · {pick.kind==='stem'?'lo visible':pick.kind==='branch'?'la base':'lo que opera detrás'}</small><h3>{detail.title}</h3><p>{detail.body}</p><Technical>{detail.technical}</Technical></div></aside>
+      {chart.voidPillars.includes(key)&&<button className="voidBadge" aria-pressed={pick.pillar===key&&pick.kind==='void'} onClick={()=>setPick({pillar:key,kind:'void'})}>○ Aquí toca tu vacío</button>}
+    </article>{pick.pillar===key&&explanation('expertInlineExplanation')}</Fragment>})}</div>
+    {explanation('expertExplanationBottom')}
   </section>
 }
 
@@ -392,9 +409,9 @@ function TemporalStrip({chart,onTool}:{chart:Chart;onTool:(view:View)=>void}){
 }
 
 function sameBirth(a:BirthInput,b:BirthInput){return a.date===b.date&&a.time===b.time&&a.name===b.name}
-function ToolHeader({chart,library,active,onSwitch,onHome,onReading}:{chart:Chart;library:SavedMap[];active:BirthInput;onSwitch:(input:BirthInput)=>void;onHome:()=>void;onReading:()=>void}){
+function ToolHeader({chart,library,active,onSwitch,onHome,onReading,onTool}:{chart:Chart;library:SavedMap[];active:BirthInput;onSwitch:(input:BirthInput)=>void;onHome:()=>void;onReading:()=>void;onTool:(view:View)=>void}){
   const selected=library.find(item=>sameBirth(item.input,active))?.id||'active'
-  return <><header className="toolHeader"><button onClick={onHome}>← Tus cartas</button><Brand/><button onClick={onReading}>Ver mi carta</button></header><div className="cardSwitcher"><span><Glyph stem={chart.dayMaster.stem} size={34}/><small>ESTÁS VIENDO</small></span><select aria-label="Cambiar carta" value={selected} onChange={event=>{const item=library.find(x=>x.id===event.target.value);if(item)onSwitch(item.input)}}>{selected==='active'&&<option value="active">{active.name||'Esta carta'} · {identityMeta[chart.dayMaster.stem].name}</option>}{library.map(item=>{const itemChart=calculateChart(item.input);return <option value={item.id} key={item.id}>{item.label} · {identityMeta[itemChart.dayMaster.stem].name}</option>})}</select></div></>
+  return <><header className="toolHeader"><button onClick={onHome}>← Tus cartas</button><Brand onNavigate={target=>target==='home'?onHome():target==='reading'?onReading():onTool(target)}/><button onClick={onReading}>Ver mi carta</button></header><div className="cardSwitcher"><span><Glyph stem={chart.dayMaster.stem} size={34}/><small>ESTÁS VIENDO</small></span><select aria-label="Cambiar carta" value={selected} onChange={event=>{const item=library.find(x=>x.id===event.target.value);if(item)onSwitch(item.input)}}>{selected==='active'&&<option value="active">{active.name||'Esta carta'} · {identityMeta[chart.dayMaster.stem].name}</option>}{library.map(item=>{const itemChart=calculateChart(item.input);return <option value={item.id} key={item.id}>{item.label} · {identityMeta[itemChart.dayMaster.stem].name}</option>})}</select></div></>
 }
 function ToolTabs({current,onTool}:{current:View;onTool:(view:View)=>void}){return <nav className="toolTabs" aria-label="Herramientas de tiempo"><button aria-current={current==='today'?'page':undefined} onClick={()=>onTool('today')}><span>☀</span>Hoy</button><button aria-current={current==='calendar'?'page':undefined} onClick={()=>onTool('calendar')}><span>▦</span>Calendario</button><button aria-current={current==='month'?'page':undefined} onClick={()=>onTool('month')}><span>◐</span>Tu mes</button><button aria-current={current==='cycles'?'page':undefined} onClick={()=>onTool('cycles')}><span>↻</span>Ciclos</button></nav>}
 
@@ -403,7 +420,7 @@ function TodayPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolP
   const [selected,setSelected]=useState(()=>{const requested=new URLSearchParams(location.search).get('fecha');return requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:todayInZone(chart.birth.timezone)}),reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
   const today=todayInZone(chart.birth.timezone)
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url)},[selected])
-  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="today" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="today" onTool={onTool}/>
     <section className="timeHero"><div><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1>{reading.headline}</h1><p>{reading.body} {reading.personal}</p><Technical>{branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].label}</Technical></div><AnimalGlyph branch={reading.pillar.branch} size={150}/></section>
     <section className="dayActions"><article><small>APROVECHA EL DÍA PARA</small><h2>Tres cosas que pueden fluir mejor</h2><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></article><article><small>DEJA UN POCO MÁS DE MARGEN EN</small><h2>Dos decisiones para llevar con calma</h2><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></article></section>
     <section className="todayShare"><div><p className="eyebrow">LLÉVATE TU DÍA</p><h2>Compártelo o guárdalo para tenerlo a la mano.</h2></div><div className="shareActions"><ShareButton kind="today" chart={chart} date={selected}>Compartir mi día</ShareButton><ShareButton kind="today" chart={chart} date={selected} downloadOnly>Descargar</ShareButton></div></section>
@@ -428,7 +445,7 @@ function CalendarPage({chart,library,active,onSwitch,onHome,onReading,onTool}:To
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);url.searchParams.set('modo',mode==='month'?'mes':mode==='search'?'buscar':'dia');url.searchParams.set('actividad',activity);url.searchParams.set('anio',String(searchYear));history.replaceState({},'',url)},[selected,mode,activity,searchYear])
   const moveMonth=(delta:number)=>{const d=new Date(Date.UTC(parts.year,parts.month-1+delta,1));setSelected(dateKey(d.getUTCFullYear(),d.getUTCMonth()+1,1))}
   const openToday=()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url);onTool('today')}
-  return <main className="toolPage calendarPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="calendar" onTool={onTool}/>
+  return <main className="toolPage calendarPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="calendar" onTool={onTool}/>
     <header className="calendarIntro"><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1 key={mode}>{mode==='search'?'¿Cuándo te conviene?':'Explora una fecha a la vez.'}</h1><p>Cada día combina su propio ritmo con la carta que elegiste arriba.</p><CalendarModes mode={mode} onChange={value=>{setMode(value);setDetail('')}}/></header>
     {mode==='day'&&<section className="calendarDayView calendarModeEnter" key={`day-${selected}`}><nav className="dayStepper"><button onClick={()=>setSelected(shiftDate(selected,-1))} aria-label="Día anterior">←</button>{selected===today?<span className="todayStatus">HOY</span>:<button className="goToday" onClick={()=>setSelected(today)}>Ir a hoy</button>}<button onClick={()=>setSelected(shiftDate(selected,1))} aria-label="Día siguiente">→</button></nav><article className="dayCard calendarSwap"><p className="eyebrow">{formatLongDate(selected).toUpperCase()}</p><div className="dayCardIdentity"><AnimalGlyph branch={reading.pillar.branch} size={96}/><div><h2>{reading.rhythm}</h2><span>{dayScoreLabel(reading.score)}</span></div></div><p className="dayLead">{reading.body} {reading.personal}</p><div className="scoreTrack"><i style={{width:`${reading.score}%`}}/></div><div className="dayCardLists"><div><small>PUEDE FLUIR MEJOR</small><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></div><div><small>LLÉVALO CON MÁS MARGEN</small><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></div></div><button className="primary" onClick={openToday}>Ver la lectura completa de este día <span>→</span></button></article></section>}
     {mode==='month'&&<section className="calendarMonthView calendarModeEnter" key={`month-${parts.year}-${parts.month}`}><header className="periodNav"><button onClick={()=>moveMonth(-1)} aria-label="Mes anterior">←</button><h2>{monthLabel(parts.year,parts.month)}</h2><button onClick={()=>moveMonth(1)} aria-label="Mes siguiente">→</button></header><div className="calendarGrid calendarGridScores">{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:offset},(_,i)=><i key={`empty-${i}`}/>) }{Array.from({length:days},(_,index)=>{const key=dateKey(parts.year,parts.month,index+1),day=dayReading(chart,key);return <button key={key} className={`calendarCellIn ${key===selected?'selected ':''}${key===today?'today':''}`} style={{animationDelay:`${Math.min(index*14,360)}ms`} as CSSProperties} onClick={()=>{setSelected(key);setMode('day')}} aria-label={`${formatLongDate(key)}. ${dayScoreLabel(day.score)}`}><b>{index+1}</b><AnimalGlyph branch={day.pillar.branch} size={28}/><span className="dayScoreDot" style={{'--score':day.score/100} as CSSProperties}/><small>{day.rhythm}</small></button>})}</div></section>}
@@ -441,7 +458,7 @@ function MonthPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolP
   const move=(delta:number)=>{const d=new Date(Date.UTC(period.year,period.month-1+delta,15));setPeriod({year:d.getUTCFullYear(),month:d.getUTCMonth()+1})}
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('periodo',`${period.year}-${String(period.month).padStart(2,'0')}`);history.replaceState({},'',url)},[period])
   const openDay=(key:string)=>{const url=new URL(location.href);url.searchParams.set('fecha',key);history.replaceState({},'',url);onTool('today')}
-  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="month" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="month" onTool={onTool}/>
     <section className="timeHero monthHero"><div><p className="eyebrow">TU MES · {monthLabel(period.year,period.month)}</p><h1>{reading.headline}</h1><p>{reading.area.intro} {reading.personal}</p><Technical>{identityMeta[reading.pillar.stem].name} · {branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].han} {stems[reading.pillar.stem].label}</Technical></div><Glyph stem={reading.pillar.stem} size={150}/></section>
     <div className="periodNav"><button onClick={()=>move(-1)}>← Mes anterior</button><button onClick={()=>setPeriod({year:now.year,month:now.month})}>Este mes</button><button onClick={()=>move(1)}>Mes siguiente →</button></div>
     <section className="monthLayout"><article className="monthFocus"><div><p className="eyebrow">PON LA ENERGÍA A TU FAVOR</p><h2>{reading.area.title}</h2><p>{reading.area.theme}</p></div><ol>{reading.area.actions.map(item=><li key={item}>{item}</li>)}</ol></article><div className="monthDetail"><article><small>PON ATENCIÓN</small><h3>Administra tu margen</h3><p>{reading.area.care}</p></article><article><small>FECHAS CON BUEN RITMO</small><h3>Tres oportunidades del mes</h3><div className="featuredDays">{reading.featured.map(day=><button key={day.date} onClick={()=>openDay(day.date)}><b>{partsFromKey(day.date).day}</b><span>{day.rhythm}</span><small>{day.opportunity[0]}</small></button>)}</div></article></div></section>
@@ -449,9 +466,9 @@ function MonthPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolP
 }
 
 function CyclesPage({chart,library,active,onSwitch,onHome,onReading,onTool,onSetSex}:ToolPageProps&{onSetSex:(sex:'female'|'male')=>void}){
-  if(!chart.birth.sexAtBirth)return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/><section className="cycleSetup"><span className="cycleMark">↻</span><p className="eyebrow">UN DATO PARA CALCULAR TUS CICLOS</p><h1>¿Qué sexo te registraron al nacer?</h1><p>El método tradicional usa este dato para definir la dirección de la secuencia de diez años. Se guarda únicamente dentro de esta carta.</p><div className="cycleChoices"><button onClick={()=>onSetSex('female')}>Mujer</button><button onClick={()=>onSetSex('male')}>Hombre</button></div></section></main>
+  if(!chart.birth.sexAtBirth)return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="cycles" onTool={onTool}/><section className="cycleSetup"><span className="cycleMark">↻</span><p className="eyebrow">UN DATO PARA CALCULAR TUS CICLOS</p><h1>¿Qué sexo te registraron al nacer?</h1><p>El método tradicional usa este dato para definir la dirección de la secuencia de diez años. Se guarda únicamente dentro de esta carta.</p><div className="cycleChoices"><button onClick={()=>onSetSex('female')}>Mujer</button><button onClick={()=>onSetSex('male')}>Hombre</button></div></section></main>
   const reading=cycleReading(chart,chart.birth.sexAtBirth),current=reading.current
-  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="cycles" onTool={onTool}/>
     <section className="timeHero cycleHero"><div><p className="eyebrow">TU CICLO ACTUAL · {current.startYear}—{current.endYear}</p><h1>Tu ciclo actual es: {current.title}.</h1><p>{current.body}</p><Technical>{stems[current.pillar.stem].han} · {stems[current.pillar.stem].label} · {branches[current.pillar.branch].label}</Technical></div><AnimalGlyph branch={current.pillar.branch} size={150}/></section>
     <section className="cycleIntro"><p>Cada diez años comienza una etapa de vida con prioridades y recursos distintos. Tu secuencia empezó alrededor de los {reading.startAge} años.</p></section>
     <ol className="cycleTimeline">{reading.items.map(item=><li className={item.current?'current':''} key={item.startYear}><div className="cycleYears"><b>{item.startYear}</b><span>{item.endYear}</span><small>{item.startAge}—{item.endAge} años</small></div><AnimalGlyph branch={item.pillar.branch} size={50}/><div><small>{item.current?'AQUÍ ESTÁS AHORA':item.focus.toUpperCase()}</small><h2>{item.title}</h2><p>{item.body}</p></div></li>)}</ol>
