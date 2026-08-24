@@ -77,7 +77,7 @@ export const identityMeta: Record<StemKey,{ name:string; caption:string; headlin
 }
 
 export const pillarMeta: Record<PillarKey,{ title:string; eyebrow:string; intro:string }> = {
-  hour:{title:'Lo que estás construyendo',eyebrow:'Tu hora',intro:'Habla de tu mundo interior, tus proyectos y la huella que quieres dejar.'},
+  hour:{title:'Qué estás construyendo',eyebrow:'Tu hora',intro:'Habla de tu mundo interior, tus proyectos y la huella que quieres dejar.'},
   day:{title:'Tu centro',eyebrow:'Tu día',intro:'Aquí vive tu Día Maestro: tu referencia más personal y la forma en que te vinculas de cerca.'},
   month:{title:'Cómo avanzas',eyebrow:'Tu mes',intro:'Muestra cómo entras al trabajo, los retos y los espacios donde quieres hacerte un lugar.'},
   year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Cuenta el clima de origen: lo aprendido temprano y la forma en que te lee el mundo al conocerte.'},
@@ -229,7 +229,7 @@ export function calculateChart(input:BirthInput):Chart{
 
 export function pillarReading(key:PillarKey,pillar:Pillar){
   const identity=identityMeta[pillar.stem],place=pillarMeta[key]
-  return {headline:`${identity.name} en ${place.title.toLowerCase()}`,body:`${place.intro} Aquí aparece ${identity.name}: ${identity.body.charAt(0).toLowerCase()+identity.body.slice(1)} ${branchPace[pillar.branch]}`,friction:identity.friction}
+  return {headline:place.title,body:`${identity.body} ${branchPace[pillar.branch]}`,friction:identity.friction}
 }
 
 export function strongestElement(chart:Chart){return (Object.entries(chart.elements) as [ElementKey,number][]).sort((a,b)=>b[1]-a[1])[0]}

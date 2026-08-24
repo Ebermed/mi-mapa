@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateChart, fixtures } from './engine'
+import { calculateChart, fixtures, pillarReading } from './engine'
 
 describe('cartas de referencia',()=>{
   it('conserva los cuatro pilares de Eber',()=>{
@@ -28,6 +28,15 @@ describe('cartas de referencia',()=>{
     expect(Number.isFinite(eber.birth.solarCorrectionMinutes)).toBe(true)
     expect(eber.birth.zoneOffset).toBe(-5)
     expect(anju.birth.zoneOffset).toBe(-5)
+  })
+  it('presenta cada pilar como un área clara y entra directo a la conducta',()=>{
+    const chart=calculateChart(fixtures.eber)
+    const hour=pillarReading('hour',chart.pillars.hour)
+    const year=pillarReading('year',{stem:'geng',branch:'dragon',hidden:['wu','yi','gui']})
+    expect(hour.headline).toBe('Qué estás construyendo')
+    expect(hour.body).not.toContain('Aquí aparece')
+    expect(year.headline).toBe('De dónde vienes')
+    expect(year.body.startsWith('Bajo presión puedes volverte muy directo')).toBe(true)
   })
 })
 

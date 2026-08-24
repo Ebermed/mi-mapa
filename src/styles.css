@@ -37,3 +37,6 @@
 @media(max-width:900px){.readingBody{grid-template-columns:1fr;gap:0}.readingRail{position:relative;top:auto;padding:24px 2% 0}.readingRail nav{grid-template-columns:repeat(2,1fr);gap:0 18px}.expertChart{grid-template-columns:repeat(2,1fr)}.readingContent .readingSection{padding-inline:2%}}
 @media(max-width:560px){.locationOptions button{align-items:flex-start;flex-direction:column;gap:2px}.locationOptions button span{text-align:left}.readingRail nav{grid-template-columns:1fr}.expertChart{grid-template-columns:repeat(2,minmax(0,1fr))}.expertChart article{padding:6px}.expertStem,.expertBranch{min-height:165px;padding-inline:5px}.expertStem strong,.expertBranch strong{font-size:1.15rem}.expertChart article>header{min-height:92px}.solarReceipt{grid-template-columns:1fr auto 1fr;padding:14px}.solarReceipt span b{font-size:1.4rem}.expertExplanation{grid-template-columns:1fr}.expertExplanation>.glyph{--glyph-size:46px!important}.sectionHead{display:block}}
 
+.shareActions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.shareActions .downloadButton{background:transparent;border-color:var(--accent);box-shadow:none;color:var(--accent-dark)}
+@media(max-width:460px){.shareActions{display:grid;grid-template-columns:minmax(0,1fr) auto}.shareActions .shareButton{padding-inline:14px}.shareActions .downloadButton{min-width:112px}}
+
