@@ -285,11 +285,11 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
 }
 
 function LoadingStory(){return <StoryCenter kicker="UNA TRADICIÓN DE MÁS DE MIL AÑOS"><div className="loader"><i/><i/><i/><span>十</span></div><h2>Ordenando tu mapa</h2><p>Estamos ubicando los ritmos del año, mes, día y hora en que naciste.</p></StoryCenter>}
-function shortStoryCopy(text:string,max=145){const sentence=text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim()||text;if(sentence.length<=max)return sentence;return `${sentence.slice(0,max).replace(/\s+\S*$/,'')}…`}
+function shortStoryCopy(text:string,max=145){const sentences=text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(part=>part.trim()).filter(Boolean);if(!sentences?.length)return text;let result=sentences[0];for(const sentence of sentences.slice(1)){if(`${result} ${sentence}`.length>max)break;result+=` ${sentence}`}return result}
 function IdentityReveal({chart}:{chart:Chart}){const identity=identityMeta[chart.dayMaster.stem];return <div className="identityReveal"><div className="identityHalo" aria-hidden="true"><i/><i/><i/></div><Glyph stem={chart.dayMaster.stem} size={104}/><p className="eyebrow">TU DÍA MAESTRO</p><h1>{identity.name}</h1><strong>{identity.headline}</strong></div>}
 function ProfilesPrelude({chart}:{chart:Chart}){const keys=profileOrder(chart);return <div className="profilesPrelude"><p className="eyebrow">UNA PERSONA, VARIOS ESPACIOS</p><h2>Cada parte de tu carta aparece en un momento distinto.</h2><div className={`profileCurtain profiles-${keys.length}`} aria-hidden="true">{keys.map((key,index)=><i key={key}><span>0{index+1}</span><b>{pillarMeta[key].eyebrow}</b></i>)}</div></div>}
 function StoryCenter({kicker,children}:{kicker:string;children:ReactNode}){return <div className="storyCenter"><p className="eyebrow">{kicker}</p>{children}</div>}
-function StoryQuote({kicker,title,body,extra}:{kicker:string;title:string;body:string;extra?:ReactNode}){return <div className="storyCopy"><p className="eyebrow">{kicker}</p><h2>{title}</h2><p>{body}</p>{extra}</div>}
+function StoryQuote({kicker,title,body,extra}:{kicker:string;title:string;body:string;extra?:ReactNode}){const classes=`storyCopy${title.length>38?' storyCopyLong':''}${body.length>150?' storyBodyLong':''}`;return <div className={classes}><p className="eyebrow">{kicker}</p><h2>{title}</h2><p>{body}</p>{extra}</div>}
 function Technical({children}:{children:ReactNode}){return <small className="technical">DATO TÉCNICO · {children}</small>}
 function FourDots({count=4}:{count?:number}){return <div className="fourDots" aria-hidden="true">{Array.from({length:count},(_,index)=><i key={index}/>)}</div>}
 
