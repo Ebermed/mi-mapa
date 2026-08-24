@@ -79,12 +79,12 @@ function branchConnection(visitor:BranchKey,chart:Chart){
     [['rat','ox'],'encuentra apoyo'],[['tiger','pig'],'encuentra apoyo'],[['rabbit','dog'],'encuentra apoyo'],[['dragon','rooster'],'encuentra apoyo'],[['snake','monkey'],'encuentra apoyo'],[['horse','goat'],'encuentra apoyo'],
     [['rat','horse'],'pide ajustar ritmos'],[['ox','goat'],'pide ajustar ritmos'],[['tiger','monkey'],'pide ajustar ritmos'],[['rabbit','rooster'],'pide ajustar ritmos'],[['dragon','dog'],'pide ajustar ritmos'],[['snake','pig'],'pide ajustar ritmos'],
   ]
-  for(const [key,pillar] of Object.entries(chart.pillars) as [PillarKey,Pillar][]){
+  for(const [key,pillar] of (Object.entries(chart.pillars) as [PillarKey,Pillar][]).filter(([key])=>!(chart.birth.timeUnknown&&key==='hour'))){
     if(pillar.branch===visitor)return `El día repite el ritmo de ${key==='year'?'tu origen':key==='month'?'cómo avanzas':key==='day'?'tu centro':'lo que construyes'} y le da más volumen.`
     const match=pairs.find(([pair])=>pair.includes(visitor)&&pair.includes(pillar.branch))
     if(match)return `El día ${match[1]} en ${key==='year'?'tu origen':key==='month'?'cómo avanzas':key==='day'?'tu centro':'lo que construyes'}.`
   }
-  return 'El día suma un ritmo distinto a tus cuatro pilares y abre espacio para probar otra manera de avanzar.'
+  return `El día suma un ritmo distinto a tus ${chart.birth.timeUnknown?'tres':'cuatro'} pilares y abre espacio para probar otra manera de avanzar.`
 }
 
 const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
@@ -92,7 +92,8 @@ const harmonies:Record<BranchKey,BranchKey>={rat:'ox',ox:'rat',tiger:'pig',pig:'
 
 function personalScore(day:BranchKey,chart:Chart){
   let score=0
-  for(const pillar of Object.values(chart.pillars)){
+  for(const [key,pillar] of Object.entries(chart.pillars) as [PillarKey,Pillar][]){
+    if(chart.birth.timeUnknown&&key==='hour')continue
     if(pillar.branch===day)score+=3
     if(clashes[pillar.branch]===day)score-=7
     if(harmonies[pillar.branch]===day)score+=4

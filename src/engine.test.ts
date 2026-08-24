@@ -38,4 +38,13 @@ describe('cartas de referencia',()=>{
     expect(year.headline).toBe('De dónde vienes')
     expect(year.body.startsWith('Bajo presión puedes volverte muy directo')).toBe(true)
   })
+  it('mantiene abierta la hora y calcula la lectura con tres pilares',()=>{
+    const complete=calculateChart(fixtures.eber)
+    const openHour=calculateChart({...fixtures.eber,time:'12:00',timeUnknown:true})
+    const total=(values:Record<string,number>)=>Object.values(values).reduce((sum,value)=>sum+value,0)
+    expect(openHour.birth.timeUnknown).toBe(true)
+    expect(total(openHour.elements)).toBeLessThan(total(complete.elements))
+    expect(openHour.interactions.every(item=>item.pillars.every(pillar=>pillar!=='hour'))).toBe(true)
+    expect(openHour.voidPillars.includes('hour')).toBe(false)
+  })
 })

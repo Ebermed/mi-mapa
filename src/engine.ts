@@ -11,6 +11,7 @@ export type BirthInput = {
   name?: string
   date: string
   time: string
+  timeUnknown?: boolean
   timezone: string
   place?: string
   longitude?: number
@@ -176,7 +177,7 @@ export const fixtures:Record<'eber'|'anju',BirthInput>={
   anju:{name:'Anju',date:'2000-04-27',time:'02:00',timezone:'America/Mexico_City',place:'Ciudad de México, México',longitude:-99.13},
 }
 
-function detectInteractions(p:Record<PillarKey,Pillar>):Interaction[]{
+function detectInteractions(p:Partial<Record<PillarKey,Pillar>>):Interaction[]{
   const entries=Object.entries(p) as [PillarKey,Pillar][], out:Interaction[]=[]
   const sets:{kind:string;pairs:[BranchKey,BranchKey][]}[]=[
     {kind:'armonía',pairs:[['rat','ox'],['tiger','pig'],['rabbit','dog'],['dragon','rooster'],['snake','monkey'],['horse','goat']]},
@@ -216,16 +217,18 @@ export function calculateChart(input:BirthInput):Chart{
     pillars=matches?pillars:expected; status=matches?'verified_fixture':'fixture_fallback'; strength=def.strength
     note=matches?'Coincide con la carta de referencia.':'Se conservó la carta de referencia validada.'
   }
-  if(!pillars) throw new Error('Necesitamos revisar la fecha y la hora para calcular tu carta.')
+  if(!pillars) throw new Error(`Necesitamos revisar ${input.timeUnknown?'la fecha y el lugar':'la fecha y la hora'} para calcular tu carta.`)
   const day=pillars.day.stem,elements={wood:0,fire:0,earth:0,metal:0,water:0} as Record<ElementKey,number>
   const tenGods={bi_jian:0,jie_cai:0,shi_shen:0,shang_guan:0,pian_cai:0,zheng_cai:0,qi_sha:0,zheng_guan:0,pian_yin:0,zheng_yin:0} as Record<TenGodKey,number>
-  for(const [key,p] of Object.entries(pillars) as [PillarKey,Pillar][]){
+  const availablePillars=(Object.entries(pillars) as [PillarKey,Pillar][]).filter(([key])=>!(input.timeUnknown&&key==='hour'))
+  for(const [key,p] of availablePillars){
     elements[stems[p.stem].element]+=2
     if(key!=='day') tenGods[tenGod(day,p.stem)]+=2
     p.hidden.forEach(hidden=>{elements[stems[hidden].element]+=1;tenGods[tenGod(day,hidden)]+=1})
   }
-  const voidBranches=voidFor(pillars.day),voidPillars=(Object.entries(pillars) as [PillarKey,Pillar][]).filter(([,p])=>voidBranches.includes(p.branch)).map(([key])=>key)
-  return {birth:{...input,calculationDate:solar.date,calculationTime:solar.time,solarCorrectionMinutes:solar.correction,zoneOffset:solar.offset},pillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(pillars),voidBranches,voidPillars,calculation:{status,note}}
+  const visiblePillars=Object.fromEntries(availablePillars) as Partial<Record<PillarKey,Pillar>>
+  const voidBranches=voidFor(pillars.day),voidPillars=availablePillars.filter(([,p])=>voidBranches.includes(p.branch)).map(([key])=>key)
+  return {birth:{...input,calculationDate:solar.date,calculationTime:solar.time,solarCorrectionMinutes:solar.correction,zoneOffset:solar.offset},pillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(visiblePillars),voidBranches,voidPillars,calculation:{status,note}}
 }
 
 export function pillarReading(key:PillarKey,pillar:Pillar){
