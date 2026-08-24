@@ -145,8 +145,8 @@ html,body,#root,.app{max-inline-size:100%;overflow-x:clip}.formPage,.formIntro,.
   .finalCard{padding:10px;margin-bottom:6px}.finalCard>.glyph{--glyph-size:44px!important}.finalCard>small{margin-top:5px}.finalCard>h2{font-size:2.35rem}.finalCard>p{font-size:.78rem;margin:4px auto}.finalProfiles{margin:6px 0}.finalProfiles .miniProfile{padding:3px}.finalCard>span{font-size:.65rem}
 
   .expertCarousel{margin-inline:-2px}.expertCarouselArrow{position:absolute;z-index:6;top:44%;display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.9);border-radius:50%;background:rgba(248,244,237,.86);box-shadow:0 10px 28px rgba(45,35,28,.16);backdrop-filter:blur(12px);font-size:1.15rem}.expertCarouselPrev{left:-12px}.expertCarouselNext{right:-12px}
-  .expertChart,.expertChart-3,.expertChart-4,.expertChart-5,.expertChart-6{padding-inline:18px;scroll-padding-inline:18px}
-  .expertPillar{flex-basis:min(88vw,365px)}.expertPillar>article{padding:8px}.expertCore{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+  .expertChart,.expertChart-3,.expertChart-4,.expertChart-5,.expertChart-6{padding-inline:18px;scroll-padding-inline:18px;scroll-behavior:smooth}
+  .expertPillar{flex-basis:min(88vw,365px);scroll-snap-stop:always}.expertPillar>article{padding:8px}.expertCore{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
   .expertStem,.expertBranch{min-height:154px;padding:10px 5px}.expertStem .glyph{--glyph-size:48px!important}.expertBranch .animalGlyph{--animal-size:54px!important}.expertStem strong,.expertBranch strong{font-size:1.16rem}.expertStem span,.expertBranch span{font-size:.56rem}
   .hiddenStems{min-height:74px;padding:8px 3px}.hiddenStems>small{font-size:.47rem}.hiddenStems button{padding:5px 7px}.expertChart article>header{min-height:64px}
   .expertLocked{min-height:360px}
