@@ -252,7 +252,7 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
   const cancelPress=()=>setPaused(false)
   let content:ReactNode
   if(step===0) content=<LoadingStory/>
-  else if(step===1) content=<StoryCenter kicker="ESTE ERES TÚ"><Glyph stem={chart.dayMaster.stem} size={96}/><h1>{identity.name}</h1><p>{identity.caption}</p><Technical>{stems[chart.dayMaster.stem].label} · Día Maestro</Technical></StoryCenter>
+  else if(step===1) content=<StoryCenter kicker="ESTE ERES TÚ"><Glyph stem={chart.dayMaster.stem} size={96}/><h1>{identity.name}</h1><p>{identity.caption}</p></StoryCenter>
   else if(step===2) content=<StoryQuote kicker="TU PERFIL PRINCIPAL" title={identity.headline} body={`${identity.body} ${identity.friction}`}/>
   else if(step===3) content=<StoryQuote kicker={`TU CARTA TIENE ${profileCountLabel(chart).toUpperCase()} VOCES`} title="Tu personalidad cambia de matiz según el espacio." body={chart.birth.timeUnknown?'El año, el mes y el día cuentan cómo te mueves en distintos lugares de tu vida. La hora queda abierta y puede sumarse cuando la conozcas.':'El año, el mes, el día y la hora cuentan cómo te mueves en distintos lugares de tu vida. Juntos forman una imagen mucho más completa que el signo del año que quizá ya conocías.'} extra={<FourDots count={profileKeys.length}/>}/>
   else if(step>=4&&step<afterPillars){const key=profileKeys[step-4],pillar=chart.pillars[key],reading=pillarReading(key,pillar);content=<PillarStory pillarKey={key} chart={chart} title={reading.headline} body={reading.body}/>}
@@ -266,7 +266,7 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
   else if(step===afterPillars+7) content=<StoryQuote kicker="HAY UN ESPACIO EN BLANCO" title="El vacío señala lo que construyes a tu manera." body="En BaZi, un vacío marca una parte de la vida que pide experiencia propia, prueba y una definición menos heredada." extra={<span className="voidRing" aria-hidden="true"/>}/>
   else if(step===afterPillars+8){
     const copy=voidReading(chart)
-    content=<StoryQuote kicker="ASÍ APARECE EN TU MAPA" title={copy.title} body={copy.body} extra={<Technical>{chart.voidBranches.map(x=>branches[x].label).join(' · ')}</Technical>}/>
+    content=<StoryQuote kicker="ASÍ APARECE EN TU MAPA" title={copy.title} body={copy.body}/>
   }
   else content=<FinalStory chart={chart}/>
   return <main className={`storyShell${paused?' storyPaused':''}`}>
@@ -286,17 +286,17 @@ function FourDots({count=4}:{count?:number}){return <div className="fourDots" ar
 
 function PillarStory({pillarKey,chart,title,body}:{pillarKey:PillarKey;chart:Chart;title:string;body:string}){
   const pillar=chart.pillars[pillarKey],meta=pillarMeta[pillarKey],identity=identityMeta[pillar.stem]
-  return <div className="pillarStory"><p className="eyebrow">{meta.eyebrow.toUpperCase()}</p><div className="pillarHero"><Glyph stem={pillar.stem} size={80}/><div><small>{meta.title}</small><h2>{identity.name}</h2><em>{branches[pillar.branch].label}</em></div></div><h3>{title}</h3><p>{body}</p><Technical>{pillarLabel(pillar)}</Technical></div>
+  return <div className="pillarStory"><p className="eyebrow">{meta.eyebrow.toUpperCase()}</p><div className="pillarHero"><Glyph stem={pillar.stem} size={80}/><div><small>{meta.title}</small><h2>{identity.name}</h2><em>{branches[pillar.branch].label}</em></div></div><h3>{title}</h3><p>{body}</p></div>
 }
 function MiniProfile({pillarKey,chart}:{pillarKey:PillarKey;chart:Chart}){const p=chart.pillars[pillarKey],i=identityMeta[p.stem];return <div className="miniProfile"><Glyph stem={p.stem} size={40}/><small>{pillarMeta[pillarKey].eyebrow}</small><b>{i.name}</b><span>{branches[p.branch].label}</span></div>}
 function ProfilesStory({chart}:{chart:Chart}){return <div className="profilesStory"><p className="eyebrow">TUS {profileCountLabel(chart).toUpperCase()} PERFILES</p><h2>Distintos espacios.<br/>La misma persona.</h2><div className={`profilesGrid profiles-${profileOrder(chart).length}`}>{profileOrder(chart).map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><p>{profileSummary(chart)}</p><ShareActions kind="profiles" chart={chart} shareLabel="Compartir mis perfiles"/></div>}
 function ElementRow({chart}:{chart:Chart}){const max=Math.max(...Object.values(chart.elements));return <div className="elementRow">{ELEMENT_ORDER.map(element=><div key={element}><ElementMark element={element}/><i style={{height:`${28+chart.elements[element]/max*72}px`}}/><small>{elementMeta[element].label}</small></div>)}</div>}
-function ElementStory({element,label,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Es una respuesta a la que vuelves con facilidad.`:`${meta.sentence} Este recurso gana presencia cuando lo eliges y lo practicas de forma consciente.`}</p><Technical>{strongest?'Es el recurso que más se repite':'Es el recurso que menos se repite'}</Technical></StoryCenter>}
+function ElementStory({element,label,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Es una respuesta a la que vuelves con facilidad.`:`${meta.sentence} Este recurso gana presencia cuando lo eliges y lo practicas de forma consciente.`}</p></StoryCenter>}
 function ElementsStory({chart}:{chart:Chart}){return <div className="elementsStory"><p className="eyebrow">TU MEZCLA, DE UN VISTAZO</p><h2>Tus cinco elementos muestran los recursos que usas con mayor facilidad.</h2><ElementRow chart={chart}/><p>El elemento que tienes más alto lo puedes utilizar de forma más sencilla. Los elementos que tienes más bajos también los puedes trabajar. Ningún elemento es mejor que otro.</p><ShareActions kind="elements" chart={chart} shareLabel="Compartir mi gráfica"/></div>}
 
 function topActions(chart:Chart){return (Object.entries(chart.tenGods) as [TenGodKey,number][]).sort((a,b)=>b[1]-a[1]).slice(0,3)}
 function ActionsStory({chart}:{chart:Chart}){const labels=['Tu respuesta más automática','También muy disponible','Otro recurso cercano'];return <div className="actionsStory"><p className="eyebrow">TUS FORMAS DE ACTUAR</p><h2>Cuando algo importa,<br/>estas respuestas aparecen primero.</h2><div className="actionList">{topActions(chart).map(([key],i)=><article key={key}><span aria-hidden="true">→</span><div><small>{labels[i]}</small><b>{actionMeta[key].name}</b><p>{actionMeta[key].copy}</p></div></article>)}</div><ShareActions kind="actions" chart={chart} shareLabel="Compartir mis formas de actuar"/></div>}
-function InteractionsStory({chart}:{chart:Chart}){const data=chart.interactions[0]?interactionReading(chart.interactions[0]):{title:`Tus ${profileCountLabel(chart)} ritmos avanzan con bastante independencia`,body:'Tus ramas natales dejan espacio para que cada área responda con su propio ritmo. Las etapas y las fechas futuras pueden activar encuentros distintos.'};return <div className="interactionStory"><p className="eyebrow">LO QUE PASA CUANDO TUS PARTES SE ENCUENTRAN</p><h2>{data.title}</h2><p>{data.body}</p>{chart.interactions[0]&&<Technical>{chart.interactions[0].kind} · {chart.interactions[0].note}</Technical>}<div className="orbit" aria-hidden="true"><i/><i/><span>十</span></div></div>}
+function InteractionsStory({chart}:{chart:Chart}){const data=chart.interactions[0]?interactionReading(chart.interactions[0]):{title:`Tus ${profileCountLabel(chart)} ritmos avanzan con bastante independencia`,body:'Tus ramas natales dejan espacio para que cada área responda con su propio ritmo. Las etapas y las fechas futuras pueden activar encuentros distintos.'};return <div className="interactionStory"><p className="eyebrow">LO QUE PASA CUANDO TUS PARTES SE ENCUENTRAN</p><h2>{data.title}</h2><p>{data.body}</p><div className="orbit" aria-hidden="true"><i/><i/><span>十</span></div></div>}
 function FinalStory({chart}:{chart:Chart}){const identity=identityMeta[chart.dayMaster.stem],voidCopy=voidReading(chart);return <div className="finalStory"><p className="eyebrow">ESTE ERES TÚ</p><div className="finalCard"><Glyph stem={chart.dayMaster.stem} size={74}/><small>TU MAPA EN UNA IMAGEN</small><h2>{identity.name}</h2><p>{identity.headline}</p><div className={`finalProfiles profiles-${profileOrder(chart).length}`}>{profileOrder(chart).map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><span>{voidCopy.title}</span></div><ShareActions kind="summary" chart={chart} shareLabel="Compartir mi mapa"/></div>}
 
 async function saveLater(input:BirthInput,step:number,notify:(x:string)=>void){
@@ -432,9 +432,18 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
 }
 function ExpertChart({chart}:{chart:Chart}){
   const order:TechnicalPillarKey[]=chart.birth.timeUnknown?['year','month','day','conception','life']:['year','month','day','hour','conception','life']
-  const [pick,setPick]=useState<{pillar:TechnicalPillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:'day',kind:'stem'})
+  const [pick,setPick]=useState<{pillar:TechnicalPillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:order[0],kind:'stem'})
   const chartRef=useRef<HTMLDivElement|null>(null)
-  const slide=(direction:-1|1)=>chartRef.current?.scrollBy({left:direction*Math.min(window.innerWidth*.82,360),behavior:'smooth'})
+  const slide=(direction:-1|1)=>{
+    const container=chartRef.current
+    if(!container)return
+    const cards=Array.from(container.children) as HTMLElement[]
+    const frame=container.getBoundingClientRect(),center=frame.left+container.clientWidth/2
+    const current=cards.reduce((closest,card,index)=>Math.abs(card.getBoundingClientRect().left+card.offsetWidth/2-center)<Math.abs(cards[closest].getBoundingClientRect().left+cards[closest].offsetWidth/2-center)?index:closest,0)
+    const targetIndex=Math.max(0,Math.min(cards.length-1,current+direction)),target=cards[targetIndex],targetFrame=target.getBoundingClientRect()
+    setPick({pillar:order[targetIndex],kind:'stem'})
+    container.scrollTo({left:container.scrollLeft+(targetFrame.left-frame.left)-(container.clientWidth-target.offsetWidth)/2,behavior:'smooth'})
+  }
   const pillarFor=(key:TechnicalPillarKey):Pillar|undefined=>key==='life'||key==='conception'?chart.auxiliaryPillars[key]:chart.pillars[key]
   const metaFor=(key:TechnicalPillarKey)=>key==='life'||key==='conception'?auxiliaryMeta[key]:pillarMeta[key]
   const pillar=pillarFor(pick.pillar)||chart.pillars.day
