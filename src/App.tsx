@@ -119,7 +119,7 @@ export default function App(){
   const sharedJourney=useMemo(()=>shared?decodeJourney(shared):null,[shared])
   const [library,setLibrary]=useState<SavedMap[]>(loadLibrary)
   const [active,setActive]=useState<BirthInput|null>(sharedJourney?.input||null)
-  const [view,setView]=useState<View>(sharedJourney?(routeView||'stories'):library.length?'home':'form')
+  const [view,setView]=useState<View>(routeView==='studio'?'studio':sharedJourney?(routeView||'stories'):library.length?'home':'form')
   const [storyStep,setStoryStep]=useState(sharedJourney?.step||0)
   const [toast,setToast]=useState('')
   const chart=useMemo(()=>active?calculateChart(active):null,[active])
@@ -131,7 +131,7 @@ export default function App(){
     const syncRoute=()=>{
       const params=new URLSearchParams(location.search),journey=params.get('c'),decoded=journey?decodeJourney(journey):null,route=params.get('vista')
       if(decoded)setActive(decoded.input)
-      const next:View=decoded?(route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':'stories'):library.length?'home':'form'
+      const next:View=route==='estudio-7m3p'?'studio':decoded?(route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':'stories'):library.length?'home':'form'
       setView(next);if(next==='stories'&&decoded)setStoryStep(decoded.step||0);window.scrollTo(0,0)
     }
     addEventListener('popstate',syncRoute);return()=>removeEventListener('popstate',syncRoute)
