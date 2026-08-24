@@ -5,6 +5,7 @@ export type Polarity = 'yang' | 'yin'
 export type StemKey = 'jia'|'yi'|'bing'|'ding'|'wu'|'ji'|'geng'|'xin'|'ren'|'gui'
 export type BranchKey = 'rat'|'ox'|'tiger'|'rabbit'|'dragon'|'snake'|'horse'|'goat'|'monkey'|'rooster'|'dog'|'pig'
 export type PillarKey = 'hour'|'day'|'month'|'year'
+export type AuxiliaryPillarKey = 'life'|'conception'
 export type TenGodKey = 'bi_jian'|'jie_cai'|'shi_shen'|'shang_guan'|'pian_cai'|'zheng_cai'|'qi_sha'|'zheng_guan'|'pian_yin'|'zheng_yin'
 
 export type BirthInput = {
@@ -25,6 +26,7 @@ export type Interaction = { id: string; kind: string; branches: BranchKey[]; pil
 export type Chart = {
   birth: BirthInput & { calculationDate: string; calculationTime: string; solarCorrectionMinutes: number; zoneOffset: number }
   pillars: Record<PillarKey, Pillar>
+  auxiliaryPillars: { life?: Pillar; conception: Pillar }
   dayMaster: { stem: StemKey; element: ElementKey; polarity: Polarity; strength: string }
   elements: Record<ElementKey, number>
   tenGods: Record<TenGodKey, number>
@@ -201,6 +203,22 @@ function voidFor(day:Pillar){
   return [branchOrder[(start+10)%12],branchOrder[(start+11)%12]]
 }
 
+function conceptionPalace(month:Pillar):Pillar{
+  const stem=stemOrder[(stemOrder.indexOf(month.stem)+1)%10]
+  const branch=branchOrder[(branchOrder.indexOf(month.branch)+3)%12]
+  return {stem,branch,hidden:branches[branch].hidden}
+}
+
+function lifePalace(year:Pillar,month:Pillar,hour:Pillar):Pillar{
+  const monthNumber=branchOrder.indexOf(month.branch)+1
+  const hourNumber=branchOrder.indexOf(hour.branch)+1
+  const branchNumber=((32-monthNumber-hourNumber-1)%12+12)%12+1
+  const yearStemNumber=stemOrder.indexOf(year.stem)+1
+  const stemNumber=((yearStemNumber*2+(branchNumber-2)-1)%10+10)%10+1
+  const stem=stemOrder[stemNumber-1],branch=branchOrder[branchNumber-1]
+  return {stem,branch,hidden:branches[branch].hidden}
+}
+
 export function calculateChart(input:BirthInput):Chart{
   const fixture=input.date===fixtureDefs.eber.date&&input.time===fixtureDefs.eber.time?'eber':input.date===fixtureDefs.anju.date&&input.time===fixtureDefs.anju.time?'anju':null
   const solar=solarMoment(input)
@@ -228,7 +246,8 @@ export function calculateChart(input:BirthInput):Chart{
   }
   const visiblePillars=Object.fromEntries(availablePillars) as Partial<Record<PillarKey,Pillar>>
   const voidBranches=voidFor(pillars.day),voidPillars=availablePillars.filter(([,p])=>voidBranches.includes(p.branch)).map(([key])=>key)
-  return {birth:{...input,calculationDate:solar.date,calculationTime:solar.time,solarCorrectionMinutes:solar.correction,zoneOffset:solar.offset},pillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(visiblePillars),voidBranches,voidPillars,calculation:{status,note}}
+  const auxiliaryPillars={conception:conceptionPalace(pillars.month),...(input.timeUnknown?{}:{life:lifePalace(pillars.year,pillars.month,pillars.hour)})}
+  return {birth:{...input,calculationDate:solar.date,calculationTime:solar.time,solarCorrectionMinutes:solar.correction,zoneOffset:solar.offset},pillars,auxiliaryPillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(visiblePillars),voidBranches,voidPillars,calculation:{status,note}}
 }
 
 export function pillarReading(key:PillarKey,pillar:Pillar){
