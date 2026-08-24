@@ -117,6 +117,12 @@ export function dayReading(chart:Chart,key:string):DayReading{
   return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score,personalClash:personalClashReading(chart,transit.day.branch)}
 }
 
+export function generalDayReading(key:string){
+  const transit=transitPillars(key),monthIndex=branchOrder.indexOf(transit.month.branch),dayIndex=branchOrder.indexOf(transit.day.branch)
+  const rhythm=DAY_RHYTHMS[(dayIndex-monthIndex+12)%12]
+  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin}
+}
+
 export function dayScoreLabel(score:number){if(score>=75)return 'Buen ritmo para avanzar';if(score>=60)return 'Hay espacio para moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Este día pide más margen'}
 
 export function classifyActivity(chart:Chart,key:string,activity:ActivityKey):ActivityResult{
