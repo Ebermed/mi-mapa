@@ -11,8 +11,10 @@ const branchFromHan=Object.fromEntries(Object.entries(branches).map(([key,value]
 
 export type DayReading={
   date:string; pillar:Pillar; monthPillar:Pillar; rhythm:string; headline:string; body:string
-  opportunity:string[]; margin:string[]; personal:string; score:number
+  opportunity:string[]; margin:string[]; personal:string; score:number; personalClash:PersonalClash
 }
+
+export type PersonalClash={active:boolean;birthBranch:BranchKey;dayBranch:BranchKey;title:string;body:string}
 
 export type ActivityKey='finances'|'collect'|'purchase'|'agreement'|'launch'|'project'|'responsibility'|'study'|'travel'|'negotiate'|'social'|'close'
 export const activities:Record<ActivityKey,{name:string;help:string;good:string[];move:string[]}>= {
@@ -90,6 +92,12 @@ function branchConnection(visitor:BranchKey,chart:Chart){
 const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
 const harmonies:Record<BranchKey,BranchKey>={rat:'ox',ox:'rat',tiger:'pig',pig:'tiger',rabbit:'dog',dog:'rabbit',dragon:'rooster',rooster:'dragon',snake:'monkey',monkey:'snake',horse:'goat',goat:'horse'}
 
+export function personalClashReading(chart:Chart,dayBranch:BranchKey):PersonalClash{
+  const birthBranch=chart.pillars.year.branch,active=clashes[birthBranch]===dayBranch
+  const dayLabel=branches[dayBranch].label,birthLabel=branches[birthBranch].label
+  return {active,birthBranch,dayBranch,title:active?`${dayLabel} choca con ${birthLabel}`:'',body:active?`${dayLabel} y ${birthLabel}, el animal de tu año, son opuestos. Este día puede traer cambios, contratiempos o planes que se mueven de forma inesperada. Conviene dejar margen, revisar dos veces y reservar las decisiones de largo plazo para otra fecha.`:''}
+}
+
 function personalScore(day:BranchKey,chart:Chart){
   let score=0
   for(const [key,pillar] of Object.entries(chart.pillars) as [PillarKey,Pillar][]){
@@ -105,7 +113,7 @@ export function dayReading(chart:Chart,key:string):DayReading{
   const transit=transitPillars(key),monthIndex=branchOrder.indexOf(transit.month.branch),dayIndex=branchOrder.indexOf(transit.day.branch)
   const rhythm=DAY_RHYTHMS[(dayIndex-monthIndex+12)%12]
   const friction=clashes[transit.month.branch]===transit.day.branch?-10:0,score=Math.max(8,Math.min(94,60+rhythm.weight+friction+personalScore(transit.day.branch,chart)))
-  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score}
+  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score,personalClash:personalClashReading(chart,transit.day.branch)}
 }
 
 export function dayScoreLabel(score:number){if(score>=75)return 'Buen ritmo para avanzar';if(score>=60)return 'Hay espacio para moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Este día pide más margen'}
@@ -113,8 +121,9 @@ export function dayScoreLabel(score:number){if(score>=75)return 'Buen ritmo para
 export function classifyActivity(chart:Chart,key:string,activity:ActivityKey):ActivityResult{
   const reading=dayReading(chart,key),rule=activities[activity]
   const supports=rule.good.includes(reading.rhythm),slows=rule.move.includes(reading.rhythm)
-  const state:ActivityResult['state']=slows||reading.score<42?'move':supports&&reading.score>=58?'good':'neutral'
-  const reason=state==='good'?`${reading.rhythm} acompaña esta actividad y la fecha tiene buen margen para tu carta.`:state==='move'?`${reading.rhythm} pide más preparación para esta actividad y tu carta agradece margen de maniobra.`:`La fecha reúne señales mixtas para esta actividad. Puedes usarla si mantienes el plan flexible.`
+  const state:ActivityResult['state']=reading.personalClash.active||slows||reading.score<42?'move':supports&&reading.score>=58?'good':'neutral'
+  const baseReason=state==='good'?`${reading.rhythm} acompaña esta actividad y la fecha tiene buen margen para tu carta.`:state==='move'?`${reading.rhythm} pide más preparación para esta actividad y tu carta agradece margen de maniobra.`:`La fecha reúne señales mixtas para esta actividad. Puedes usarla si mantienes el plan flexible.`
+  const reason=reading.personalClash.active?`${baseReason} Además, es tu día de choque personal: ${reading.personalClash.title}.`:baseReason
   return {date:key,state,reading,reason}
 }
 
