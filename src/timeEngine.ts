@@ -68,6 +68,7 @@ export function todayInZone(timezone:string){
   return `${values.year}-${values.month}-${values.day}`
 }
 export function formatLongDate(key:string){const p=partsFromKey(key),d=new Date(Date.UTC(p.year,p.month-1,p.day));return `${WEEKDAYS[d.getUTCDay()]} ${p.day} de ${MONTHS[p.month-1]}`}
+export function formatFullDate(key:string){const p=partsFromKey(key);return `${formatLongDate(key)} de ${p.year}`}
 export function monthLabel(year:number,month:number){return `${MONTHS[month-1]} ${year}`}
 
 function transitPillars(key:string,time='12:00'){
@@ -148,17 +149,31 @@ export function monthReading(chart:Chart,year:number,month:number){
   return {year,month,pillar,area,days,featured,headline:`Este ${MONTHS[month-1]} te trae más movimiento en ${area.theme}.`,personal:branchConnection(pillar.branch,chart)}
 }
 
-export type CycleItem={startYear:number;endYear:number;startAge:number;endAge:number;pillar:Pillar;current:boolean;title:string;body:string;focus:string}
-export function cycleReading(chart:Chart,sex:'female'|'male',today=new Date()):{startAge:number;items:CycleItem[];current:CycleItem}{
+export type CycleItem={startDate:string;endDate:string;startYear:number;endYear:number;startAge:number;endAge:number;pillar:Pillar;current:boolean;title:string;body:string;focus:string}
+export type InitialCycleStage={startDate:string;endDate:string;startYear:number;endYear:number;startAge:0;endAge:number}
+function completedAge(birthKey:string,targetKey:string){
+  const birth=partsFromKey(birthKey),target=partsFromKey(targetKey)
+  let age=target.year-birth.year
+  if(target.month<birth.month||(target.month===birth.month&&target.day<birth.day))age--
+  return Math.max(0,age)
+}
+function safeDateKey(year:number,month:number,day:number){
+  const last=new Date(Date.UTC(year,month,0)).getUTCDate()
+  return dateKey(year,month,Math.min(day,last))
+}
+export function cycleReading(chart:Chart,sex:'female'|'male',today=new Date()):{startAge:number;startDate:string;initial:InitialCycleStage;items:CycleItem[];current:CycleItem}{
   const p=partsFromKey(chart.birth.calculationDate),[hour,minute]=chart.birth.calculationTime.split(':').map(Number)
   const eightChar=Solar.fromYmdHms(p.year,p.month,p.day,hour,minute,0).getLunar().getEightChar()
-  const daYun=eightChar.getYun(sex==='male'?1:0).getDaYun(10).filter((item:any)=>item.getIndex()>0)
+  const yun=eightChar.getYun(sex==='male'?1:0),startSolar=yun.getStartSolar(),startMonth=startSolar.getMonth(),startDay=startSolar.getDay()
+  const daYun=yun.getDaYun(10).filter((item:any)=>item.getIndex()>0),todayKey=dateKey(today.getFullYear(),today.getMonth()+1,today.getDate())
   const items=daYun.map((item:any)=>{
     const value=String(item.getGanZhi()),stem=stemFromHan[value.charAt(0)],branch=branchFromHan[value.charAt(1)],pillar={stem,branch,hidden:branches[branch].hidden}
-    const area=areaFor(chart.dayMaster.element,stems[stem].element),current=today.getFullYear()>=item.getStartYear()&&today.getFullYear()<=item.getEndYear()
-    return {startYear:item.getStartYear(),endYear:item.getEndYear(),startAge:item.getStartAge(),endAge:item.getEndAge(),pillar,current,title:`${identityMeta[stem].name} · ${branches[branch].label}`,body:`${identityMeta[stem].body} ${branchPace[branch]}`,focus:area.title} as CycleItem
+    const startDate=safeDateKey(item.getStartYear(),startMonth,startDay),endDate=shiftDate(safeDateKey(item.getStartYear()+10,startMonth,startDay),-1)
+    const area=areaFor(chart.dayMaster.element,stems[stem].element),current=todayKey>=startDate&&todayKey<=endDate
+    return {startDate,endDate,startYear:partsFromKey(startDate).year,endYear:partsFromKey(endDate).year,startAge:completedAge(chart.birth.calculationDate,startDate),endAge:completedAge(chart.birth.calculationDate,endDate),pillar,current,title:`${identityMeta[stem].name} · ${branches[branch].label}`,body:`${identityMeta[stem].body} ${branchPace[branch]}`,focus:area.title} as CycleItem
   })
-  return {startAge:items[0]?.startAge||1,items,current:items.find((item:CycleItem)=>item.current)||items[0]}
+  const first=items[0],initialEnd=shiftDate(first.startDate,-1),initial:InitialCycleStage={startDate:chart.birth.calculationDate,endDate:initialEnd,startYear:p.year,endYear:partsFromKey(initialEnd).year,startAge:0,endAge:completedAge(chart.birth.calculationDate,initialEnd)}
+  return {startAge:first.startAge,startDate:first.startDate,initial,items,current:items.find((item:CycleItem)=>item.current)||first}
 }
 
 export function elementForPillar(pillar:Pillar){return elementMeta[stems[pillar.stem].element]}
