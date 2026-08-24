@@ -14,6 +14,7 @@ export type BirthInput = {
   timezone: string
   place?: string
   longitude?: number
+  sexAtBirth?: 'female'|'male'
   /** Conservado sólo para poder abrir enlaces viejos. Las cartas nuevas usan zona histórica + longitud. */
   dstAdjustment?: boolean
 }
@@ -64,7 +65,7 @@ export const elementMeta: Record<ElementKey,{ label:string; article:string; colo
 }
 
 export const identityMeta: Record<StemKey,{ name:string; caption:string; headline:string; body:string; friction:string }> = {
-  jia:{name:'Roble',caption:'dirección y constancia',headline:'Cuando eliges una dirección, no la abandonas a la primera dificultad.',body:'Te sale avanzar con una idea clara de hacia dónde quieres ir y seguir empujando mientras todavía tenga sentido.',friction:'A veces tardas en revisar el rumbo porque ya invertiste mucho en sostenerlo.'},
+  jia:{name:'Roble',caption:'dirección y constancia',headline:'Cuando eliges una dirección, sueles sostenerla incluso cuando aparecen dificultades.',body:'Te sale avanzar con una idea clara de hacia dónde quieres ir y seguir empujando mientras todavía tenga sentido.',friction:'A veces tardas en revisar el rumbo porque ya invertiste mucho en sostenerlo.'},
   yi:{name:'Hiedra',caption:'adaptación y estrategia',headline:'Puedes cambiar la forma de llegar sin perder de vista lo que querías conseguir.',body:'Adaptarte te sale como estrategia: miras qué hay disponible, encuentras margen y ajustas la ruta.',friction:'Adaptarte tanto puede hacer que otros tarden en notar dónde están tus límites.'},
   bing:{name:'Sol',caption:'impulso y presencia',headline:'Cuando algo te entusiasma, se te nota y puedes contagiar ese impulso.',body:'Te sale poner energía visible en lo que quieres mover y ayudar a que algo arranque.',friction:'Puedes mantener el acelerador puesto cuando ya convendría bajar el ritmo.'},
   ding:{name:'Brasa',caption:'detalle y continuidad',headline:'Sueles arrancar mejor cuando ya entendiste cómo quieres hacer las cosas.',body:'Te sirve preparar, cuidar detalles y construir confianza antes de exponerte del todo.',friction:'Puedes esperar demasiado a sentir que todo está listo.'},
@@ -73,14 +74,14 @@ export const identityMeta: Record<StemKey,{ name:string; caption:string; headlin
   geng:{name:'Acero',caption:'decisión y firmeza',headline:'Cuando ya sabes qué sobra, te resulta natural cortarlo y seguir.',body:'Bajo presión puedes volverte muy directo para decidir qué sirve, qué estorba y qué toca hacer.',friction:'Puedes cerrar una opción antes de escuchar algo que habría cambiado la decisión.'},
   xin:{name:'Joya',caption:'precisión y criterio',headline:'Sueles notar detalles que otras personas dejan pasar.',body:'Antes de dar algo por terminado, revisas la forma, la precisión y si cada parte quedó como querías.',friction:'Puedes seguir corrigiendo cuando el resultado ya funciona.'},
   ren:{name:'Marea',caption:'movimiento y conexión',headline:'Cuando aparece un problema, tu cabeza abre varias rutas a la vez.',body:'Te sale conectar información, personas y opciones mientras sigues avanzando.',friction:'Puedes abrir más frentes de los que alcanzas a cerrar.'},
-  gui:{name:'Rocío',caption:'contexto e imaginación',headline:'Sueles encontrar salidas que no eran la ruta más obvia.',body:'Lees el contexto, conectas señales pequeñas y cambias de enfoque cuando aparece información nueva.',friction:'Puedes seguir explorando posibilidades cuando ya necesitas escoger una.'},
+  gui:{name:'Rocío',caption:'contexto e imaginación',headline:'Sueles encontrar salidas fuera de la ruta más obvia.',body:'Lees el contexto, conectas señales pequeñas y cambias de enfoque cuando aparece información nueva.',friction:'Puedes seguir explorando posibilidades cuando ya necesitas escoger una.'},
 }
 
 export const pillarMeta: Record<PillarKey,{ title:string; eyebrow:string; intro:string }> = {
   hour:{title:'Qué estás construyendo',eyebrow:'Tu hora',intro:'Habla de tu mundo interior, tus proyectos y la huella que quieres dejar.'},
-  day:{title:'Tu centro',eyebrow:'Tu día',intro:'Aquí vive tu Día Maestro: tu referencia más personal y la forma en que te vinculas de cerca.'},
-  month:{title:'Cómo avanzas',eyebrow:'Tu mes',intro:'Muestra cómo entras al trabajo, los retos y los espacios donde quieres hacerte un lugar.'},
-  year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Cuenta el clima de origen: lo aprendido temprano y la forma en que te lee el mundo al conocerte.'},
+  day:{title:'Tu centro',eyebrow:'Tu día',intro:'Tu Día Maestro describe tu referencia más personal y la forma en que te vinculas de cerca.'},
+  month:{title:'Cómo avanzas',eyebrow:'Tu mes',intro:'Cómo entras al trabajo, los retos y los espacios donde quieres hacerte un lugar.'},
+  year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Lo que aprendiste temprano y la primera impresión que sueles dar al llegar a un lugar nuevo.'},
 }
 
 export const branchPace: Record<BranchKey,string> = {
@@ -88,7 +89,7 @@ export const branchPace: Record<BranchKey,string> = {
   tiger:'Te activa abrir camino y probar con movimiento, incluso antes de tener todo resuelto.', rabbit:'Lees el ambiente y ajustas el tono para que las cosas puedan seguir sin romperse.',
   dragon:'Tiendes a juntar varias piezas, proteger tu espacio y reorganizar hasta que algo tenga estructura.', snake:'Miras con atención antes de moverte; cuando ves el momento, puedes actuar con mucha precisión.',
   horse:'Necesitas movimiento visible y margen para actuar con rapidez.', goat:'Te importa que el proceso se sostenga y que las personas dentro de él tengan espacio.',
-  monkey:'Encuentras atajos, pruebas recursos distintos y aprendes mientras resuelves.', rooster:'Notas qué no encaja y te sale afinarlo hasta que quede claro.',
+  monkey:'Encuentras atajos, pruebas recursos distintos y aprendes mientras resuelves.', rooster:'Notas qué pieza desentona y te sale afinarla hasta que quede clara.',
   dog:'La lealtad y el sentido de responsabilidad pesan mucho cuando decides quedarte.', pig:'Absorbes información con facilidad y prefieres comprender el contexto antes de cerrar una conclusión.',
 }
 
@@ -203,7 +204,7 @@ export function calculateChart(input:BirthInput):Chart{
   const fixture=input.date===fixtureDefs.eber.date&&input.time===fixtureDefs.eber.time?'eber':input.date===fixtureDefs.anju.date&&input.time===fixtureDefs.anju.time?'anju':null
   const solar=solarMoment(input)
   let pillars:Record<PillarKey,Pillar>|null=null, note='Zona horaria histórica y hora solar calculadas en este dispositivo.'
-  try{pillars=libraryPillars(solar.date,solar.time)}catch{note='No se pudo leer el calendario local.'}
+  try{pillars=libraryPillars(solar.date,solar.time)}catch{note='El calendario local encontró un problema.'}
   let status:Chart['calculation']['status']='library_unverified',strength='Por observar'
   if(fixture){
     const def=fixtureDefs[fixture]
@@ -215,7 +216,7 @@ export function calculateChart(input:BirthInput):Chart{
     pillars=matches?pillars:expected; status=matches?'verified_fixture':'fixture_fallback'; strength=def.strength
     note=matches?'Coincide con la carta de referencia.':'Se conservó la carta de referencia validada.'
   }
-  if(!pillars) throw new Error('No pudimos calcular tu carta. Revisa la fecha y la hora.')
+  if(!pillars) throw new Error('Necesitamos revisar la fecha y la hora para calcular tu carta.')
   const day=pillars.day.stem,elements={wood:0,fire:0,earth:0,metal:0,water:0} as Record<ElementKey,number>
   const tenGods={bi_jian:0,jie_cai:0,shi_shen:0,shang_guan:0,pian_cai:0,zheng_cai:0,qi_sha:0,zheng_guan:0,pian_yin:0,zheng_yin:0} as Record<TenGodKey,number>
   for(const [key,p] of Object.entries(pillars) as [PillarKey,Pillar][]){
@@ -238,21 +239,20 @@ export function pillarLabel(p:Pillar){return `${stems[p.stem].label} · ${branch
 
 export function interactionReading(interaction:Interaction){
   const places=interaction.pillars.map(p=>pillarMeta[p].title.toLowerCase()).join(' y ')
-  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:'Hay partes de ti que se hacen equipo',body:`Entre ${places} hay una armonía: cuando una de esas áreas se activa, la otra suele encontrar cómo acompañarla. No significa que todo sea fácil; significa que existe un puente natural entre ambas.`}
-  if(interaction.kind==='choque') return {title:'Dos ritmos tuyos piden cosas distintas',body:`Entre ${places} aparece un choque. Puede sentirse como cambiar de prioridad de golpe o querer avanzar de dos maneras incompatibles. No es una condena: es una señal para nombrar qué necesidad toca primero.`}
-  if(interaction.kind==='eco interno') return {title:'Un mismo patrón se repite con fuerza',body:`La misma energía aparece en ${places}. Cuando se activa, puede volverse muy evidente. Te sirve ponerle nombre temprano para no reaccionar en automático.`}
+  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:'Hay partes de ti que se hacen equipo',body:`Entre ${places} hay una armonía: cuando una de esas áreas se activa, la otra suele encontrar cómo acompañarla. Ese puente facilita coordinar ambas necesidades.`}
+  if(interaction.kind==='choque') return {title:'Dos ritmos tuyos piden cosas distintas',body:`Entre ${places} aparece un choque. Puede sentirse como cambiar de prioridad de golpe o querer avanzar de dos maneras incompatibles. Nombrar qué necesidad toca primero ayuda a ordenar esa tensión.`}
+  if(interaction.kind==='eco interno') return {title:'Un mismo patrón se repite con fuerza',body:`La misma energía aparece en ${places}. Cuando se activa, puede volverse muy evidente. Te sirve ponerle nombre temprano para reconocerlo antes de actuar en automático.`}
   return {title:'Hay una fricción que conviene mirar de frente',body:`Entre ${places} puede acumularse incomodidad antes de que la expreses. Cuando notes que algo te pesa, decir qué necesitas suele ser más útil que seguir ajustándote en silencio.`}
 }
 
 export function voidReading(chart:Chart){
   const names=chart.voidBranches.map(x=>branches[x].label).join(' y ')
-  if(!chart.voidPillars.length) return {title:'Tu vacío no ocupa un pilar natal',body:`Tu ciclo deja en vacío a ${names}, pero ninguna de esas ramas aparece en tus cuatro pilares. Puede sentirse de forma temporal cuando una etapa o una fecha las activa, no como un tema fijo de tu carta.`}
+  if(!chart.voidPillars.length) return {title:'Tu vacío se activa por etapas',body:`Tus ramas vacías son ${names}. Su influencia aparece por temporadas cuando una etapa o una fecha las activa.`}
   const places=chart.voidPillars.map(x=>pillarMeta[x].title.toLowerCase()).join(' y ')
-  return {title:`El vacío toca ${places}`,body:`Aquí el vacío no significa que te falte algo. Señala un área que rara vez se sostiene en piloto automático: necesitas comprobarla en experiencia propia, redefinirla o construir una manera muy tuya de vivirla. Técnicamente, tus ramas vacías son ${names}.`}
+  return {title:`El vacío toca ${places}`,body:`El vacío señala un área que rara vez se sostiene en piloto automático: necesitas comprobarla en experiencia propia, redefinirla o construir una manera muy tuya de vivirla. Técnicamente, tus ramas vacías son ${names}.`}
 }
 
 export function profileSummary(chart:Chart){
   const identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0]
   return `${identity.headline} ${elementMeta[strong].article.charAt(0).toUpperCase()+elementMeta[strong].article.slice(1)} es tu recurso más disponible; ${elementMeta[low].article} te pide más intención.`
 }
-

@@ -120,4 +120,3 @@ export function searchLocations(query:string,limit=8){
     return {location,score}
   }).filter(item=>item.score>=0).sort((a,b)=>a.score-b.score||a.location.city.length-b.location.city.length||a.location.city.localeCompare(b.location.city)).slice(0,limit).map(item=>item.location)
 }
-

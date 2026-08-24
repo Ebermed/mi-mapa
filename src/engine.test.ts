@@ -39,4 +39,3 @@ describe('cartas de referencia',()=>{
     expect(year.body.startsWith('Bajo presión puedes volverte muy directo')).toBe(true)
   })
 })
-
