@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateChart, fixtures, pillarReading } from './engine'
+import { calculateChart, fixtures, interactionReading, pillarReading } from './engine'
 
 describe('cartas de referencia',()=>{
   it('conserva los cuatro pilares de Eber',()=>{
@@ -56,5 +56,13 @@ describe('cartas de referencia',()=>{
     const eber=calculateChart(fixtures.eber)
     expect(eber.auxiliaryPillars.life).toMatchObject({stem:'gui',branch:'snake'})
     expect(eber.auxiliaryPillars.conception).toMatchObject({stem:'bing',branch:'dog'})
+  })
+  it('explica los encuentros desde los animales presentes en la carta',()=>{
+    const chart=calculateChart(fixtures.eber)
+    const clash=chart.interactions.find(item=>item.kind==='choque')!
+    const reading=interactionReading(clash)
+    expect(reading.title).toBe('Rata y Caballo son contrarios dentro de tu carta')
+    expect(reading.body).toContain('Tienes a ambos dentro de tu carta')
+    expect(reading.body).toContain('Eso significa que')
   })
 })
