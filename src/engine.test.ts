@@ -46,5 +46,12 @@ describe('cartas de referencia',()=>{
     expect(total(openHour.elements)).toBeLessThan(total(complete.elements))
     expect(openHour.interactions.every(item=>item.pillars.every(pillar=>pillar!=='hour'))).toBe(true)
     expect(openHour.voidPillars.includes('hour')).toBe(false)
+    expect(openHour.auxiliaryPillars.life).toBeUndefined()
+    expect(openHour.auxiliaryPillars.conception).toMatchObject({stem:'bing',branch:'dog'})
+  })
+  it('calcula los palacios de Vida y Concepción como pilares auxiliares',()=>{
+    const eber=calculateChart(fixtures.eber)
+    expect(eber.auxiliaryPillars.life).toMatchObject({stem:'gui',branch:'snake'})
+    expect(eber.auxiliaryPillars.conception).toMatchObject({stem:'bing',branch:'dog'})
   })
 })
