@@ -32,11 +32,14 @@ jobs:
           git commit -m "content: hoy"
           git push
       - name: Publicar en Instagram
-        if: ${{ secrets.IG_USER_ID != '' && secrets.IG_ACCESS_TOKEN != '' }}
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: |
+          if [ -z "$IG_USER_ID" ] || [ -z "$IG_ACCESS_TOKEN" ]; then
+            echo "Instagram pendiente de conexión; la imagen quedó generada."
+            exit 0
+          fi
           CAPTION="$(cat public/social/hoy-caption.txt)"
           IMAGE_URL="https://raw.githubusercontent.com/Ebermed/mi-mapa/main/public/social/hoy.jpg"
           CREATION_ID="$(curl -s -X POST "https://graph.facebook.com/v22.0/$IG_USER_ID/media" -F "image_url=$IMAGE_URL" -F "caption=$CAPTION" -F "access_token=$IG_ACCESS_TOKEN" | jq -r .id)"
