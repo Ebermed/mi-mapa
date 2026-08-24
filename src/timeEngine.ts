@@ -14,6 +14,23 @@ export type DayReading={
   opportunity:string[]; margin:string[]; personal:string; score:number
 }
 
+export type ActivityKey='finances'|'collect'|'purchase'|'agreement'|'launch'|'project'|'responsibility'|'study'|'travel'|'negotiate'|'social'|'close'
+export const activities:Record<ActivityKey,{name:string;help:string;good:string[];move:string[]}>= {
+  finances:{name:'Dinero y finanzas',help:'Pagos, presupuesto, ventas, compras planeadas y decisiones de recursos.',good:['Reunir','Captar','Consolidar','Afianzar'],move:['Desmontar','Pausa']},
+  collect:{name:'Cobrar o recibir un pago',help:'Cobros pendientes, compensaciones y entradas de dinero.',good:['Captar','Reunir','Consolidar'],move:['Pausa','Revisar']},
+  purchase:{name:'Hacer una compra importante',help:'Compras planeadas, comparación de precios y uso de presupuesto.',good:['Afianzar','Consolidar','Revisar'],move:['Desmontar','Pausa']},
+  agreement:{name:'Firmar o negociar un acuerdo',help:'Contratos, condiciones, propuestas, permisos y negociación.',good:['Ajustar','Afianzar','Consolidar'],move:['Desmontar','Pausa']},
+  launch:{name:'Lanzar, publicar o presentar',help:'Presentaciones, publicaciones, campañas y visibilidad.',good:['Mostrar','Consolidar','Ejecutar'],move:['Pausa','Desmontar','Revisar']},
+  project:{name:'Iniciar o mover un proyecto',help:'Primeras reuniones, líneas de trabajo, proyectos y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Pausa','Desmontar']},
+  responsibility:{name:'Asumir más responsabilidad',help:'Promociones, nuevas responsabilidades, coordinación y trabajo.',good:['Afianzar','Consolidar','Ajustar'],move:['Revisar','Pausa']},
+  study:{name:'Estudiar o iniciar un curso',help:'Estudio, investigación, escritura, cursos y preparación.',good:['Arrancar','Revisar','Afianzar'],move:['Desmontar']},
+  travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con margen.',good:['Ejecutar','Mostrar','Arrancar'],move:['Pausa','Desmontar']},
+  negotiate:{name:'Pedir apoyo o negociar',help:'Apoyos, permisos, colaboración y conversaciones con acuerdos.',good:['Ajustar','Captar','Reunir'],move:['Desmontar','Pausa']},
+  social:{name:'Reunirte y conectar con gente',help:'Reuniones, celebraciones, convocatorias y colaboración.',good:['Reunir','Mostrar','Captar'],move:['Pausa','Desmontar']},
+  close:{name:'Cerrar, cancelar o depurar',help:'Terminar pendientes, recortar, cancelar y cerrar procesos.',good:['Desmontar','Depurar','Consolidar'],move:['Arrancar','Reunir']},
+}
+export type ActivityResult={date:string;state:'good'|'move'|'neutral';reading:DayReading;reason:string}
+
 const DAY_RHYTHMS=[
   {name:'Arrancar',weight:10,body:'Este ritmo ayuda a convertir una intención clara en movimiento.',good:['empezar un curso','iniciar un proyecto','hacer una primera reunión'],margin:['cerrar una etapa de forma definitiva','tomar una decisión difícil de revertir']},
   {name:'Depurar',weight:2,body:'Este ritmo ayuda a quitar peso, cerrar pendientes y dejar espacio para lo que sigue.',good:['vaciar pendientes','editar y recortar','ordenar archivos'],margin:['hacer un gran lanzamiento','asumir un compromiso largo']},
@@ -70,10 +87,40 @@ function branchConnection(visitor:BranchKey,chart:Chart){
   return 'El día suma un ritmo distinto a tus cuatro pilares y abre espacio para probar otra manera de avanzar.'
 }
 
+const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
+const harmonies:Record<BranchKey,BranchKey>={rat:'ox',ox:'rat',tiger:'pig',pig:'tiger',rabbit:'dog',dog:'rabbit',dragon:'rooster',rooster:'dragon',snake:'monkey',monkey:'snake',horse:'goat',goat:'horse'}
+
+function personalScore(day:BranchKey,chart:Chart){
+  let score=0
+  for(const pillar of Object.values(chart.pillars)){
+    if(pillar.branch===day)score+=3
+    if(clashes[pillar.branch]===day)score-=7
+    if(harmonies[pillar.branch]===day)score+=4
+  }
+  return Math.max(-14,Math.min(10,score))
+}
+
 export function dayReading(chart:Chart,key:string):DayReading{
   const transit=transitPillars(key),monthIndex=branchOrder.indexOf(transit.month.branch),dayIndex=branchOrder.indexOf(transit.day.branch)
   const rhythm=DAY_RHYTHMS[(dayIndex-monthIndex+12)%12]
-  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score:rhythm.weight}
+  const friction=clashes[transit.month.branch]===transit.day.branch?-10:0,score=Math.max(8,Math.min(94,60+rhythm.weight+friction+personalScore(transit.day.branch,chart)))
+  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score}
+}
+
+export function dayScoreLabel(score:number){if(score>=75)return 'Buen ritmo para avanzar';if(score>=60)return 'Hay espacio para moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Este día pide más margen'}
+
+export function classifyActivity(chart:Chart,key:string,activity:ActivityKey):ActivityResult{
+  const reading=dayReading(chart,key),rule=activities[activity]
+  const supports=rule.good.includes(reading.rhythm),slows=rule.move.includes(reading.rhythm)
+  const state:ActivityResult['state']=slows||reading.score<42?'move':supports&&reading.score>=58?'good':'neutral'
+  const reason=state==='good'?`${reading.rhythm} acompaña esta actividad y la fecha tiene buen margen para tu carta.`:state==='move'?`${reading.rhythm} pide más preparación para esta actividad y tu carta agradece margen de maniobra.`:`La fecha reúne señales mixtas para esta actividad. Puedes usarla si mantienes el plan flexible.`
+  return {date:key,state,reading,reason}
+}
+
+export function searchActivityYear(chart:Chart,year:number,activity:ActivityKey){
+  const out:ActivityResult[]=[]
+  for(let month=1;month<=12;month++)for(let day=1;day<=new Date(Date.UTC(year,month,0)).getUTCDate();day++)out.push(classifyActivity(chart,dateKey(year,month,day),activity))
+  return out
 }
 
 function areaFor(dayElement:ElementKey,visitor:ElementKey){

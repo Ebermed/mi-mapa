@@ -7,11 +7,11 @@ import {
   type BirthInput, type Chart, type ElementKey, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
-import { cycleReading, dateKey, dayReading, formatLongDate, monthLabel, monthReading, partsFromKey, todayInZone } from './timeEngine'
+import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
 
-type View = 'home'|'form'|'stories'|'reading'|'today'|'month'|'cycles'
+type View = 'home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
-type ShareKind = 'profiles'|'elements'|'actions'|'summary'
+type ShareKind = 'profiles'|'elements'|'actions'|'summary'|'today'
 
 const STORE='mi-mapa.library.v1'
 const PILLAR_ORDER:PillarKey[]=['hour','day','month','year']
@@ -89,7 +89,7 @@ function Brand(){return <div className="brand"><span>十</span><b>MI MAPA</b></d
 export default function App(){
   const shared=useMemo(()=>new URLSearchParams(location.search).get('c'),[])
   const route=useMemo(()=>new URLSearchParams(location.search).get('vista'),[])
-  const routeView:View|null=route==='hoy'?'today':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':null
+  const routeView:View|null=route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':null
   const sharedJourney=useMemo(()=>shared?decodeJourney(shared):null,[shared])
   const [library,setLibrary]=useState<SavedMap[]>(loadLibrary)
   const [active,setActive]=useState<BirthInput|null>(sharedJourney?.input||null)
@@ -105,7 +105,7 @@ export default function App(){
     const syncRoute=()=>{
       const params=new URLSearchParams(location.search),journey=params.get('c'),decoded=journey?decodeJourney(journey):null,route=params.get('vista')
       if(decoded)setActive(decoded.input)
-      const next:View=decoded?(route==='hoy'?'today':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':'stories'):library.length?'home':'form'
+      const next:View=decoded?(route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':'stories'):library.length?'home':'form'
       setView(next);if(next==='stories'&&decoded)setStoryStep(decoded.step||0);window.scrollTo(0,0)
     }
     addEventListener('popstate',syncRoute);return()=>removeEventListener('popstate',syncRoute)
@@ -129,11 +129,12 @@ export default function App(){
   const go=(target:View,input=active,replace=false)=>{
     if(input)setActive(input)
     setView(target);window.scrollTo(0,0)
-    const url=new URL(window.location.href),routeName=target==='today'?'hoy':target==='month'?'mes':target==='cycles'?'ciclos':target==='reading'?'carta':''
+    const url=new URL(window.location.href),routeName=target==='today'?'hoy':target==='calendar'?'calendario':target==='month'?'mes':target==='cycles'?'ciclos':target==='reading'?'carta':''
     if(input&&target!=='home'&&target!=='form')url.searchParams.set('c',encodeJourney(input,target==='stories'?storyStep:0));else url.searchParams.delete('c')
     if(routeName)url.searchParams.set('vista',routeName);else url.searchParams.delete('vista')
-    if(target!=='today')url.searchParams.delete('fecha')
+    if(target!=='today'&&target!=='calendar')url.searchParams.delete('fecha')
     if(target!=='month')url.searchParams.delete('periodo')
+    if(target!=='calendar'){url.searchParams.delete('modo');url.searchParams.delete('actividad');url.searchParams.delete('anio')}
     history[replace?'replaceState':'pushState']({},'',url)
   }
   const start=(input:BirthInput)=>{save(input);setStoryStep(0);go('stories',input)}
@@ -148,9 +149,10 @@ export default function App(){
     {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>} 
     {view==='stories'&&chart&&<Stories chart={chart} step={storyStep} setStep={setStoryStep} onClose={finish} onSave={()=>saveLater(active!,storyStep,setToast)} onFinish={finish}/>} 
     {view==='reading'&&chart&&<Reading chart={chart} onHome={()=>go('home',null)} onReplay={()=>{setStoryStep(0);go('stories')}} onTool={target=>go(target)}/>}
-    {view==='today'&&chart&&<TodayPage chart={chart} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
-    {view==='month'&&chart&&<MonthPage chart={chart} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
-    {view==='cycles'&&chart&&<CyclesPage chart={chart} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)} onSetSex={sex=>updateActive({sexAtBirth:sex})}/>}
+    {view==='today'&&chart&&active&&<TodayPage chart={chart} library={library} active={active} onSwitch={input=>go('today',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
+    {view==='calendar'&&chart&&active&&<CalendarPage chart={chart} library={library} active={active} onSwitch={input=>go('calendar',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
+    {view==='month'&&chart&&active&&<MonthPage chart={chart} library={library} active={active} onSwitch={input=>go('month',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
+    {view==='cycles'&&chart&&active&&<CyclesPage chart={chart} library={library} active={active} onSwitch={input=>go('cycles',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)} onSetSex={sex=>updateActive({sexAtBirth:sex})}/>}
     {toast&&<div className="toast" role="status">{toast}</div>}
   </div>
 }
@@ -164,7 +166,7 @@ function Home({library,onOpen,onNew,onDelete}:{library:SavedMap[];onOpen:(x:Save
     <div className="libraryGrid">
       {library.map(item=>{const c=calculateChart(item.input),identity=identityMeta[c.dayMaster.stem],meta=elementMeta[c.dayMaster.element];return <article className="mapCard" key={item.id} style={{'--card':meta.color,'--card-soft':meta.soft} as CSSProperties}>
         <div className="cardGlow"/><button className="mapMain" onClick={()=>onOpen(item)}><Glyph stem={c.dayMaster.stem} size={58}/><span><small>{item.completed?'TU LECTURA':'LECTURA GUARDADA'}</small><strong>{item.label}</strong><em>{identity.name} · {meta.label} {c.dayMaster.polarity==='yin'?'Yin':'Yang'}</em></span></button>
-        <div className="mapTools"><button onClick={()=>onOpen(item,'today')}><span>☀</span><b>Hoy</b><small>Tu oportunidad del día</small></button><button onClick={()=>onOpen(item,'month')}><span>◐</span><b>Tu mes</b><small>El foco de este mes</small></button><button onClick={()=>onOpen(item,'cycles')}><span>↻</span><b>Ciclos</b><small>Tu etapa actual</small></button></div>
+        <div className="mapTools"><button onClick={()=>onOpen(item,'today')}><span>☀</span><b>Hoy</b><small>Tu oportunidad del día</small></button><button onClick={()=>onOpen(item,'calendar')}><span>▦</span><b>Calendario</b><small>Día, mes y buscar fechas</small></button><button onClick={()=>onOpen(item,'month')}><span>◐</span><b>Tu mes</b><small>El foco de este mes</small></button><button onClick={()=>onOpen(item,'cycles')}><span>↻</span><b>Ciclos</b><small>Tu etapa actual</small></button></div>
         <div className="cardActions"><button onClick={()=>onOpen(item,'stories')}>Volver a las historias</button><button className="delete" onClick={()=>onDelete(item.id)}>Eliminar</button></div>
       </article>})}
     </div>
@@ -262,20 +264,28 @@ async function saveLater(input:BirthInput,step:number,notify:(x:string)=>void){
 }
 
 function ShareActions({kind,chart,shareLabel}:{kind:ShareKind;chart:Chart;shareLabel:string}){return <div className="shareActions"><ShareButton kind={kind} chart={chart}>{shareLabel}</ShareButton><ShareButton kind={kind} chart={chart} downloadOnly>Descargar</ShareButton></div>}
-function ShareButton({kind,chart,children,downloadOnly=false}:{kind:ShareKind;chart:Chart;children:ReactNode;downloadOnly?:boolean}){
+function ShareButton({kind,chart,children,downloadOnly=false,date}:{kind:ShareKind;chart:Chart;children:ReactNode;downloadOnly?:boolean;date?:string}){
   const [busy,setBusy]=useState(false)
-  const act=async()=>{setBusy(true);try{await shareImage(chart,kind,downloadOnly)}finally{setBusy(false)}}
+  const act=async()=>{setBusy(true);try{await shareImage(chart,kind,downloadOnly,date)}finally{setBusy(false)}}
   return <button className={`shareButton ${downloadOnly?'downloadButton':''}`} onClick={act} disabled={busy}>{busy?(downloadOnly?'Descargando…':'Preparando imagen…'):children} <span>{downloadOnly?'↓':'↗'}</span></button>
 }
 
-async function shareImage(chart:Chart,kind:ShareKind,downloadOnly=false){
+async function shareImage(chart:Chart,kind:ShareKind,downloadOnly=false,date?:string){
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350
   const ctx=canvas.getContext('2d')!,meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem]
   const gradient=ctx.createLinearGradient(0,0,1080,1350);gradient.addColorStop(0,'#fbf7f0');gradient.addColorStop(.48,meta.soft);gradient.addColorStop(1,'#f4e0d6');ctx.fillStyle=gradient;ctx.fillRect(0,0,1080,1350)
   for(let i=0;i<12;i++){ctx.globalAlpha=.06;ctx.fillStyle=i%2?meta.color:'#ffffff';ctx.beginPath();ctx.arc((i*317)%1080,(i*191)%1350,110+(i%4)*52,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1
   ctx.fillStyle='rgba(255,255,255,.72)';roundRect(ctx,70,70,940,1210,52);ctx.fill()
   ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font='600 22px Arial';ctx.fillText('MI MAPA · ESTE ERES TÚ',540,130)
-  ctx.font='italic 700 96px Georgia';ctx.fillText(kind==='elements'?'MIS CINCO ELEMENTOS':kind==='actions'?'ASÍ ACTÚO':identity.name,540,260)
+  const daily=kind==='today'?dayReading(chart,date||todayInZone(chart.birth.timezone)):null
+  ctx.font='italic 700 96px Georgia';ctx.fillText(kind==='elements'?'MIS CINCO ELEMENTOS':kind==='actions'?'ASÍ ACTÚO':kind==='today'?daily!.rhythm.toUpperCase():identity.name,540,260)
+  if(kind==='today'&&daily){
+    ctx.fillStyle=meta.dark;ctx.font='600 27px Arial';ctx.fillText(formatLongDate(daily.date).toUpperCase(),540,330)
+    ctx.fillStyle='rgba(255,255,255,.7)';roundRect(ctx,125,405,830,515,38);ctx.fill()
+    ctx.fillStyle=meta.dark;ctx.font='italic 600 45px Georgia';ctx.fillText('Este día puede fluir mejor para:',540,485)
+    ctx.textAlign='left';daily.opportunity.forEach((item,index)=>{const y=585+index*105;ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(190,y-10,22,0,Math.PI*2);ctx.fill();ctx.fillStyle=meta.dark;ctx.font='600 34px Arial';ctx.fillText(item.charAt(0).toUpperCase()+item.slice(1),235,y)});ctx.textAlign='center'
+    ctx.textAlign='left';ctx.font='italic 600 30px Georgia';wrapCanvasText(ctx,daily.personal,220,1025,640,39);ctx.textAlign='center'
+  }
   if(kind==='profiles'||kind==='summary'){
     ctx.font='600 30px Arial';ctx.fillText(identity.headline,540,335,830)
     PILLAR_ORDER.forEach((key,index)=>{const p=chart.pillars[key],x=120+index*225;ctx.fillStyle='rgba(255,255,255,.66)';roundRect(ctx,x,430,190,285,28);ctx.fill();ctx.fillStyle=elementMeta[stems[p.stem].element].color;ctx.beginPath();ctx.arc(x+95,500,38,0,Math.PI*2);ctx.fill();ctx.fillStyle=meta.dark;ctx.font='700 18px Arial';ctx.fillText(pillarMeta[key].eyebrow.toUpperCase(),x+95,575);ctx.font='600 31px Georgia';ctx.fillText(identityMeta[p.stem].name,x+95,625);ctx.font='20px Arial';ctx.fillText(branches[p.branch].label,x+95,666)})
@@ -287,7 +297,7 @@ async function shareImage(chart:Chart,kind:ShareKind,downloadOnly=false){
   if(kind==='actions'){
     topActions(chart).forEach(([key],index)=>{const y=425+index*225;ctx.fillStyle='rgba(255,255,255,.68)';roundRect(ctx,125,y,830,180,30);ctx.fill();ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(190,y+90,38,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 25px Arial';ctx.fillText('→',190,y+98);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font='700 33px Georgia';ctx.fillText(actionMeta[key].name,255,y+65);ctx.font='23px Arial';wrapCanvasText(ctx,actionMeta[key].copy,255,y+105,630,31);ctx.textAlign='center'})
   }
-  ctx.fillStyle=meta.dark;ctx.font='italic 600 27px Georgia';ctx.fillText('Una forma clara de observar cómo respondo.',540,1210)
+  ctx.fillStyle=meta.dark;ctx.font='italic 600 27px Georgia';ctx.fillText(kind==='today'?'Mi Mapa · una oportunidad diferente cada día.':'Una forma clara de observar cómo respondo.',540,1210)
   const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(x=>x?resolve(x):reject(new Error('La imagen tardó demasiado en generarse')),'image/png'))
   const file=new File([blob],`mi-mapa-${kind}.png`,{type:'image/png'})
   const localPreview=['127.0.0.1','localhost'].includes(location.hostname)
@@ -310,7 +320,7 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
         <a href="#acciones"><i/>Cómo actúas<small>Lo que aparece primero</small></a>
         <a href="#encuentros"><i/>Encuentros<small>Choques y armonías internas</small></a>
         <a href="#vacio"><i/>Tu vacío<small>Lo que construyes a tu manera</small></a>
-        <a href="#ahora"><i/>Tu momento actual<small>Hoy, mes y ciclo</small></a>
+        <a href="#ahora"><i/>Tu momento actual<small>Hoy, calendario, mes y ciclo</small></a>
         <a href="#carta-completa"><i/>Carta completa<small>La estructura para ojos expertos</small></a>
       </nav></aside>
       <div className="readingContent">
@@ -359,43 +369,73 @@ function TemporalStrip({chart,onTool}:{chart:Chart;onTool:(view:View)=>void}){
   const cycle=chart.birth.sexAtBirth?cycleReading(chart,chart.birth.sexAtBirth).current:null
   return <section className="readingSection temporalStrip" id="ahora"><SectionHead kicker="TU MOMENTO ACTUAL" title="Cada fecha activa una oportunidad diferente."/><div className="temporalCards">
     <button onClick={()=>onTool('today')}><AnimalGlyph branch={daily.pillar.branch}/><small>HOY</small><h3>{daily.rhythm}</h3><p>{daily.opportunity[0]} puede encontrar buen ritmo hoy.</p><span>Ver mi día →</span></button>
+    <button onClick={()=>onTool('calendar')}><span className="cycleMark">▦</span><small>CALENDARIO</small><h3>Encuentra una fecha</h3><p>Explora cualquier día o busca cuándo conviene hacer algo concreto.</p><span>Abrir calendario →</span></button>
     <button onClick={()=>onTool('month')}><Glyph stem={monthly.pillar.stem} size={54}/><small>ESTE MES</small><h3>{monthly.area.title}</h3><p>{monthly.headline}</p><span>Ver mi mes →</span></button>
     <button onClick={()=>onTool('cycles')}><span className="cycleMark">↻</span><small>MI CICLO</small><h3>{cycle?cycle.title:'Tu etapa actual'}</h3><p>Cada diez años comienza una etapa con prioridades diferentes.</p><span>Ver mis ciclos →</span></button>
   </div></section>
 }
 
-function ToolHeader({onHome,onReading}:{onHome:()=>void;onReading:()=>void}){return <header className="toolHeader"><button onClick={onHome}>← Tus cartas</button><Brand/><button onClick={onReading}>Ver mi carta</button></header>}
-function ToolTabs({current,onTool}:{current:View;onTool:(view:View)=>void}){return <nav className="toolTabs" aria-label="Herramientas de tiempo"><button aria-current={current==='today'?'page':undefined} onClick={()=>onTool('today')}>Hoy</button><button aria-current={current==='month'?'page':undefined} onClick={()=>onTool('month')}>Tu mes</button><button aria-current={current==='cycles'?'page':undefined} onClick={()=>onTool('cycles')}>Ciclos</button></nav>}
+function sameBirth(a:BirthInput,b:BirthInput){return a.date===b.date&&a.time===b.time&&a.name===b.name}
+function ToolHeader({chart,library,active,onSwitch,onHome,onReading}:{chart:Chart;library:SavedMap[];active:BirthInput;onSwitch:(input:BirthInput)=>void;onHome:()=>void;onReading:()=>void}){
+  const selected=library.find(item=>sameBirth(item.input,active))?.id||'active'
+  return <><header className="toolHeader"><button onClick={onHome}>← Tus cartas</button><Brand/><button onClick={onReading}>Ver mi carta</button></header><div className="cardSwitcher"><span><Glyph stem={chart.dayMaster.stem} size={34}/><small>ESTÁS VIENDO</small></span><select aria-label="Cambiar carta" value={selected} onChange={event=>{const item=library.find(x=>x.id===event.target.value);if(item)onSwitch(item.input)}}>{selected==='active'&&<option value="active">{active.name||'Esta carta'} · {identityMeta[chart.dayMaster.stem].name}</option>}{library.map(item=>{const itemChart=calculateChart(item.input);return <option value={item.id} key={item.id}>{item.label} · {identityMeta[itemChart.dayMaster.stem].name}</option>})}</select></div></>
+}
+function ToolTabs({current,onTool}:{current:View;onTool:(view:View)=>void}){return <nav className="toolTabs" aria-label="Herramientas de tiempo"><button aria-current={current==='today'?'page':undefined} onClick={()=>onTool('today')}><span>☀</span>Hoy</button><button aria-current={current==='calendar'?'page':undefined} onClick={()=>onTool('calendar')}><span>▦</span>Calendario</button><button aria-current={current==='month'?'page':undefined} onClick={()=>onTool('month')}><span>◐</span>Tu mes</button><button aria-current={current==='cycles'?'page':undefined} onClick={()=>onTool('cycles')}><span>↻</span>Ciclos</button></nav>}
 
-function TodayPage({chart,onHome,onReading,onTool}:{chart:Chart;onHome:()=>void;onReading:()=>void;onTool:(view:View)=>void}){
-  const [selected,setSelected]=useState(()=>{const requested=new URLSearchParams(location.search).get('fecha');return requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:todayInZone(chart.birth.timezone)}),parts=partsFromKey(selected),reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
-  const days=new Date(Date.UTC(parts.year,parts.month,0)).getUTCDate(),offset=new Date(Date.UTC(parts.year,parts.month-1,1)).getUTCDay()
-  const moveMonth=(delta:number)=>{const d=new Date(Date.UTC(parts.year,parts.month-1+delta,1));setSelected(dateKey(d.getUTCFullYear(),d.getUTCMonth()+1,1))}
+type ToolPageProps={chart:Chart;library:SavedMap[];active:BirthInput;onSwitch:(input:BirthInput)=>void;onHome:()=>void;onReading:()=>void;onTool:(view:View)=>void}
+function TodayPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolPageProps){
+  const [selected,setSelected]=useState(()=>{const requested=new URLSearchParams(location.search).get('fecha');return requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:todayInZone(chart.birth.timezone)}),reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
   const today=todayInZone(chart.birth.timezone)
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url)},[selected])
-  return <main className="toolPage"><ToolHeader onHome={onHome} onReading={onReading}/><ToolTabs current="today" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="today" onTool={onTool}/>
     <section className="timeHero"><div><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1>{reading.headline}</h1><p>{reading.body} {reading.personal}</p><Technical>{branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].label}</Technical></div><AnimalGlyph branch={reading.pillar.branch} size={150}/></section>
-    <section className="dayActions"><article><small>APROVECHA EL DÍA PARA</small><h2>{reading.opportunity[0]}</h2><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></article><article><small>DEJA UN POCO MÁS DE MARGEN EN</small><h2>{reading.margin[0]}</h2><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></article></section>
-    <section className="calendarPanel"><header className="periodNav"><button onClick={()=>moveMonth(-1)} aria-label="Mes anterior">←</button><div><p className="eyebrow">ELIGE OTRO DÍA</p><h2>{monthLabel(parts.year,parts.month)}</h2></div><button onClick={()=>moveMonth(1)} aria-label="Mes siguiente">→</button></header><div className="calendarGrid">{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:offset},(_,i)=><i key={`empty-${i}`}/>) }{Array.from({length:days},(_,index)=>{const key=dateKey(parts.year,parts.month,index+1),day=dayReading(chart,key);return <button key={key} className={`${key===selected?'selected ':''}${key===today?'today':''}`} onClick={()=>setSelected(key)} aria-label={`${formatLongDate(key)}. ${day.rhythm}`}><b>{index+1}</b><AnimalGlyph branch={day.pillar.branch} size={25}/><span>{day.rhythm}</span></button>})}</div><button className="textButton" onClick={()=>setSelected(today)}>Volver a hoy</button></section>
+    <section className="dayActions"><article><small>APROVECHA EL DÍA PARA</small><h2>Tres cosas que pueden fluir mejor</h2><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></article><article><small>DEJA UN POCO MÁS DE MARGEN EN</small><h2>Dos decisiones para llevar con calma</h2><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></article></section>
+    <section className="todayShare"><div><p className="eyebrow">LLÉVATE TU DÍA</p><h2>Compártelo o guárdalo para tenerlo a la mano.</h2></div><div className="shareActions"><ShareButton kind="today" chart={chart} date={selected}>Compartir mi día</ShareButton><ShareButton kind="today" chart={chart} date={selected} downloadOnly>Descargar</ShareButton></div></section>
+    <section className="calendarBridge"><span className="cycleMark">▦</span><div><p className="eyebrow">¿QUIERES VER OTRA FECHA?</p><h2>Explora el calendario completo.</h2><p>Mira cualquier día, recorre el mes o busca las mejores fechas para una actividad concreta.</p></div><button className="primary" onClick={()=>onTool('calendar')}>Abrir calendario <span>→</span></button>{selected!==today&&<button className="quietButton" onClick={()=>setSelected(today)}>Volver a hoy</button>}</section>
   </main>
 }
 
-function MonthPage({chart,onHome,onReading,onTool}:{chart:Chart;onHome:()=>void;onReading:()=>void;onTool:(view:View)=>void}){
+type CalendarMode='day'|'month'|'search'
+function CalendarModes({mode,onChange}:{mode:CalendarMode;onChange:(mode:CalendarMode)=>void}){return <nav className="calendarModes" aria-label="Vistas del calendario"><button aria-current={mode==='day'?'page':undefined} onClick={()=>onChange('day')}>Día</button><button aria-current={mode==='month'?'page':undefined} onClick={()=>onChange('month')}>Mes</button><button aria-current={mode==='search'?'page':undefined} onClick={()=>onChange('search')}>Buscar fecha</button></nav>}
+
+function CalendarPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolPageProps){
+  const params=useMemo(()=>new URLSearchParams(location.search),[]),today=todayInZone(chart.birth.timezone)
+  const requested=params.get('fecha'),initialDate=requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:today
+  const requestedMode=params.get('modo'),[mode,setMode]=useState<CalendarMode>(requestedMode==='mes'?'month':requestedMode==='buscar'?'search':'day')
+  const [selected,setSelected]=useState(initialDate),[activity,setActivity]=useState<ActivityKey>(()=>{const value=params.get('actividad') as ActivityKey;return value&&activities[value]?value:'finances'})
+  const [searchYear,setSearchYear]=useState(()=>Number(params.get('anio'))||partsFromKey(initialDate).year),[detail,setDetail]=useState('')
+  const parts=partsFromKey(selected),reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
+  const days=new Date(Date.UTC(parts.year,parts.month,0)).getUTCDate(),offset=new Date(Date.UTC(parts.year,parts.month-1,1)).getUTCDay()
+  const results=useMemo(()=>mode==='search'?searchActivityYear(chart,searchYear,activity):[],[chart,searchYear,activity,mode]),resultMap=useMemo(()=>new Map(results.map(item=>[item.date,item])),[results])
+  const counts=results.reduce((out,item)=>{out[item.state]++;return out},{good:0,move:0,neutral:0})
+  const detailReading=detail?classifyActivity(chart,detail,activity):null
+  useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);url.searchParams.set('modo',mode==='month'?'mes':mode==='search'?'buscar':'dia');url.searchParams.set('actividad',activity);url.searchParams.set('anio',String(searchYear));history.replaceState({},'',url)},[selected,mode,activity,searchYear])
+  const moveMonth=(delta:number)=>{const d=new Date(Date.UTC(parts.year,parts.month-1+delta,1));setSelected(dateKey(d.getUTCFullYear(),d.getUTCMonth()+1,1))}
+  const openToday=()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url);onTool('today')}
+  return <main className="toolPage calendarPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="calendar" onTool={onTool}/>
+    <header className="calendarIntro"><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1>{mode==='search'?'¿Cuándo te conviene?':'Explora una fecha a la vez.'}</h1><p>Cada día combina su propio ritmo con la carta que elegiste arriba.</p><CalendarModes mode={mode} onChange={value=>{setMode(value);setDetail('')}}/></header>
+    {mode==='day'&&<section className="calendarDayView"><nav className="dayStepper"><button onClick={()=>setSelected(shiftDate(selected,-1))} aria-label="Día anterior">←</button>{selected===today?<span className="todayStatus">HOY</span>:<button className="goToday" onClick={()=>setSelected(today)}>Ir a hoy</button>}<button onClick={()=>setSelected(shiftDate(selected,1))} aria-label="Día siguiente">→</button></nav><article className="dayCard"><p className="eyebrow">{formatLongDate(selected).toUpperCase()}</p><div className="dayCardIdentity"><AnimalGlyph branch={reading.pillar.branch} size={96}/><div><h2>{reading.rhythm}</h2><span>{dayScoreLabel(reading.score)}</span></div></div><p className="dayLead">{reading.body} {reading.personal}</p><div className="scoreTrack"><i style={{width:`${reading.score}%`}}/></div><div className="dayCardLists"><div><small>PUEDE FLUIR MEJOR</small><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></div><div><small>LLÉVALO CON MÁS MARGEN</small><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></div></div><button className="primary" onClick={openToday}>Ver la lectura completa de este día <span>→</span></button></article></section>}
+    {mode==='month'&&<section className="calendarMonthView"><header className="periodNav"><button onClick={()=>moveMonth(-1)} aria-label="Mes anterior">←</button><h2>{monthLabel(parts.year,parts.month)}</h2><button onClick={()=>moveMonth(1)} aria-label="Mes siguiente">→</button></header><div className="calendarGrid calendarGridScores">{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:offset},(_,i)=><i key={`empty-${i}`}/>) }{Array.from({length:days},(_,index)=>{const key=dateKey(parts.year,parts.month,index+1),day=dayReading(chart,key);return <button key={key} className={`${key===selected?'selected ':''}${key===today?'today':''}`} onClick={()=>{setSelected(key);setMode('day')}} aria-label={`${formatLongDate(key)}. ${dayScoreLabel(day.score)}`}><b>{index+1}</b><AnimalGlyph branch={day.pillar.branch} size={28}/><span className="dayScoreDot" style={{'--score':day.score/100} as CSSProperties}/><small>{day.rhythm}</small></button>})}</div></section>}
+    {mode==='search'&&<section className="dateSearch"><article className="searchControls"><div><p className="eyebrow">BUSCA UNA FECHA</p><h2>¿Qué quieres hacer?</h2></div><label>Actividad<select value={activity} onChange={event=>{setActivity(event.target.value as ActivityKey);setDetail('')}}>{Object.entries(activities).map(([key,item])=><option value={key} key={key}>{item.name}</option>)}</select><small>{activities[activity].help}</small></label><div className="searchYear"><button onClick={()=>setSearchYear(value=>value-1)} aria-label="Año anterior">←</button><b>{searchYear}</b><button onClick={()=>setSearchYear(value=>value+1)} aria-label="Año siguiente">→</button></div><button className="quietButton" onClick={()=>setSearchYear(partsFromKey(today).year)}>Este año</button></article><div className="searchSummary"><span><b>{counts.good}</b>Buen encaje</span><span><b>{counts.move}</b>Mejor moverlo</span><span><b>{counts.neutral}</b>Neutral</span></div><p className="searchHint">Toca cualquier fecha para revisar por qué cayó en ese resultado.</p><div className="yearCalendars">{Array.from({length:12},(_,monthIndex)=>{const month=monthIndex+1,monthDays=new Date(Date.UTC(searchYear,month,0)).getUTCDate(),monthOffset=new Date(Date.UTC(searchYear,month-1,1)).getUTCDay();return <article className="miniMonth" key={month}><h3>{monthLabel(searchYear,month).replace(` ${searchYear}`,'')}</h3><div>{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:monthOffset},(_,i)=><i key={i}/>)}{Array.from({length:monthDays},(_,index)=>{const key=dateKey(searchYear,month,index+1),result=resultMap.get(key);return <button key={key} className={`${result?.state||'neutral'} ${detail===key?'selected':''}`} onClick={()=>setDetail(key)} aria-label={`${index+1} de ${monthLabel(searchYear,month)}. ${result?.state==='good'?'Buen encaje':result?.state==='move'?'Mejor moverlo':'Neutral'}`}>{index+1}</button>})}</div></article>})}</div>{detailReading&&<aside className={`searchDetail ${detailReading.state}`}><button onClick={()=>setDetail('')} aria-label="Cerrar detalle">×</button><p className="eyebrow">{detailReading.state==='good'?'BUEN ENCAJE':detailReading.state==='move'?'MEJOR MOVERLO':'FECHA NEUTRAL'}</p><h2>{formatLongDate(detail)}</h2><p>{detailReading.reason}</p><small>{detailReading.reading.rhythm} · {branches[detailReading.reading.pillar.branch].label}</small><button className="primary" onClick={()=>{setSelected(detail);setMode('day')}}>Ver este día <span>→</span></button></aside>}</section>}
+  </main>
+}
+
+function MonthPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolPageProps){
   const now=partsFromKey(todayInZone(chart.birth.timezone)),[period,setPeriod]=useState(()=>{const requested=new URLSearchParams(location.search).get('periodo');if(requested&&/^\d{4}-\d{2}$/.test(requested)){const [year,month]=requested.split('-').map(Number);return {year,month}}return {year:now.year,month:now.month}}),reading=useMemo(()=>monthReading(chart,period.year,period.month),[chart,period])
   const move=(delta:number)=>{const d=new Date(Date.UTC(period.year,period.month-1+delta,15));setPeriod({year:d.getUTCFullYear(),month:d.getUTCMonth()+1})}
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('periodo',`${period.year}-${String(period.month).padStart(2,'0')}`);history.replaceState({},'',url)},[period])
   const openDay=(key:string)=>{const url=new URL(location.href);url.searchParams.set('fecha',key);history.replaceState({},'',url);onTool('today')}
-  return <main className="toolPage"><ToolHeader onHome={onHome} onReading={onReading}/><ToolTabs current="month" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="month" onTool={onTool}/>
     <section className="timeHero monthHero"><div><p className="eyebrow">TU MES · {monthLabel(period.year,period.month)}</p><h1>{reading.headline}</h1><p>{reading.area.intro} {reading.personal}</p><Technical>{identityMeta[reading.pillar.stem].name} · {branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].han} {stems[reading.pillar.stem].label}</Technical></div><Glyph stem={reading.pillar.stem} size={150}/></section>
     <div className="periodNav"><button onClick={()=>move(-1)}>← Mes anterior</button><button onClick={()=>setPeriod({year:now.year,month:now.month})}>Este mes</button><button onClick={()=>move(1)}>Mes siguiente →</button></div>
     <section className="monthLayout"><article className="monthFocus"><div><p className="eyebrow">PON LA ENERGÍA A TU FAVOR</p><h2>{reading.area.title}</h2><p>{reading.area.theme}</p></div><ol>{reading.area.actions.map(item=><li key={item}>{item}</li>)}</ol></article><div className="monthDetail"><article><small>PON ATENCIÓN</small><h3>Administra tu margen</h3><p>{reading.area.care}</p></article><article><small>FECHAS CON BUEN RITMO</small><h3>Tres oportunidades del mes</h3><div className="featuredDays">{reading.featured.map(day=><button key={day.date} onClick={()=>openDay(day.date)}><b>{partsFromKey(day.date).day}</b><span>{day.rhythm}</span><small>{day.opportunity[0]}</small></button>)}</div></article></div></section>
   </main>
 }
 
-function CyclesPage({chart,onHome,onReading,onTool,onSetSex}:{chart:Chart;onHome:()=>void;onReading:()=>void;onTool:(view:View)=>void;onSetSex:(sex:'female'|'male')=>void}){
-  if(!chart.birth.sexAtBirth)return <main className="toolPage"><ToolHeader onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/><section className="cycleSetup"><span className="cycleMark">↻</span><p className="eyebrow">UN DATO PARA CALCULAR TUS CICLOS</p><h1>¿Qué sexo te registraron al nacer?</h1><p>El método tradicional usa este dato para definir la dirección de la secuencia de diez años. Se guarda únicamente dentro de esta carta.</p><div className="cycleChoices"><button onClick={()=>onSetSex('female')}>Mujer</button><button onClick={()=>onSetSex('male')}>Hombre</button></div></section></main>
+function CyclesPage({chart,library,active,onSwitch,onHome,onReading,onTool,onSetSex}:ToolPageProps&{onSetSex:(sex:'female'|'male')=>void}){
+  if(!chart.birth.sexAtBirth)return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/><section className="cycleSetup"><span className="cycleMark">↻</span><p className="eyebrow">UN DATO PARA CALCULAR TUS CICLOS</p><h1>¿Qué sexo te registraron al nacer?</h1><p>El método tradicional usa este dato para definir la dirección de la secuencia de diez años. Se guarda únicamente dentro de esta carta.</p><div className="cycleChoices"><button onClick={()=>onSetSex('female')}>Mujer</button><button onClick={()=>onSetSex('male')}>Hombre</button></div></section></main>
   const reading=cycleReading(chart,chart.birth.sexAtBirth),current=reading.current
-  return <main className="toolPage"><ToolHeader onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/>
+  return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading}/><ToolTabs current="cycles" onTool={onTool}/>
     <section className="timeHero cycleHero"><div><p className="eyebrow">TU CICLO ACTUAL · {current.startYear}—{current.endYear}</p><h1>Tu ciclo actual es: {current.title}.</h1><p>{current.body}</p><Technical>{stems[current.pillar.stem].han} · {stems[current.pillar.stem].label} · {branches[current.pillar.branch].label}</Technical></div><AnimalGlyph branch={current.pillar.branch} size={150}/></section>
     <section className="cycleIntro"><p>Cada diez años comienza una etapa de vida con prioridades y recursos distintos. Tu secuencia empezó alrededor de los {reading.startAge} años.</p></section>
     <ol className="cycleTimeline">{reading.items.map(item=><li className={item.current?'current':''} key={item.startYear}><div className="cycleYears"><b>{item.startYear}</b><span>{item.endYear}</span><small>{item.startAge}—{item.endAge} años</small></div><AnimalGlyph branch={item.pillar.branch} size={50}/><div><small>{item.current?'AQUÍ ESTÁS AHORA':item.focus.toUpperCase()}</small><h2>{item.title}</h2><p>{item.body}</p></div></li>)}</ol>

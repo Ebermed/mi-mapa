@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculateChart, fixtures } from './engine'
-import { cycleReading, dayReading, monthReading } from './timeEngine'
+import { classifyActivity, cycleReading, dayReading, monthReading, searchActivityYear } from './timeEngine'
 
 describe('lecturas personales de tiempo', () => {
   const eber = calculateChart(fixtures.eber)
@@ -36,5 +36,16 @@ describe('lecturas personales de tiempo', () => {
     expect(female.current.startYear).toBeLessThanOrEqual(2026)
     expect(female.current.endYear).toBeGreaterThanOrEqual(2026)
     expect(female.items[0].pillar).not.toEqual(male.items[0].pillar)
+  })
+
+  it('busca fechas para una actividad y conserva resultados personalizados', () => {
+    const results = searchActivityYear(eber, 2026, 'launch')
+    const sameDateEber = classifyActivity(eber, '2026-08-23', 'launch')
+    const sameDateAnju = classifyActivity(anju, '2026-08-23', 'launch')
+
+    expect(results).toHaveLength(365)
+    expect(results.some(item => item.state === 'good')).toBe(true)
+    expect(results.some(item => item.state === 'move')).toBe(true)
+    expect(sameDateEber.reading.personal).not.toBe(sameDateAnju.reading.personal)
   })
 })
