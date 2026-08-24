@@ -7,7 +7,7 @@ import {
   type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
-import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
+import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatFullDate, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
 
 type View = 'home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
@@ -201,22 +201,27 @@ function Home({library,active,onOpen,onNew,onDelete}:{library:SavedMap[];active:
 }
 
 function BirthForm({onSubmit,onBack}:{onSubmit:(x:BirthInput)=>void;onBack?:()=>void}){
-  const [name,setName]=useState(''),[date,setDate]=useState(''),[time,setTime]=useState(''),[timeUnknown,setTimeUnknown]=useState(false),[place,setPlace]=useState(''),[selected,setSelected]=useState<BirthLocation|null>(null),[open,setOpen]=useState(false),[highlighted,setHighlighted]=useState(0),[error,setError]=useState('')
+  const [name,setName]=useState(''),[day,setDay]=useState(''),[month,setMonth]=useState(''),[year,setYear]=useState(''),[hour,setHour]=useState(''),[minute,setMinute]=useState(''),[timeUnknown,setTimeUnknown]=useState(false),[place,setPlace]=useState(''),[selected,setSelected]=useState<BirthLocation|null>(null),[open,setOpen]=useState(false),[highlighted,setHighlighted]=useState(0),[error,setError]=useState('')
   const suggestions=useMemo(()=>searchLocations(place,7),[place])
   const choose=(location:BirthLocation)=>{setSelected(location);setPlace(locationLabel(location));setOpen(false);setHighlighted(0)}
+  const digits=(value:string,length:number)=>value.replace(/\D/g,'').slice(0,length)
   const submit=(event:FormEvent)=>{
     event.preventDefault()
+    const y=Number(year),m=Number(month),d=Number(day),h=Number(hour),min=Number(minute)
+    const candidate=new Date(Date.UTC(y,m-1,d)),validDate=year.length===4&&y>=1900&&y<=2050&&m>=1&&m<=12&&d>=1&&candidate.getUTCFullYear()===y&&candidate.getUTCMonth()===m-1&&candidate.getUTCDate()===d
+    const validTime=timeUnknown||(hour.length>0&&minute.length>0&&h>=0&&h<=23&&min>=0&&min<=59)
     const location=selected||suggestions[0]
-    if(!date||(!timeUnknown&&!time)||!place.trim()){setError(`Completa fecha, ${timeUnknown?'lugar':'hora y lugar'} para calcular tu carta.`);return}
+    if(!validDate||!validTime||!place.trim()){setError(`Revisa la fecha, ${timeUnknown?'el lugar':'la hora y el lugar'} para calcular tu carta.`);return}
     if(!location){setError('Elige una ciudad de la lista para poder ajustar la hora solar automáticamente.');setOpen(true);return}
-    setError('');onSubmit({name:name.trim(),date,time:timeUnknown?'12:00':time,timeUnknown,place:locationLabel(location),timezone:location.timezone,longitude:location.longitude})
+    const date=`${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,time=timeUnknown?'12:00':`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`
+    setError('');onSubmit({name:name.trim(),date,time,timeUnknown,place:locationLabel(location),timezone:location.timezone,longitude:location.longitude})
   }
   return <main className="shell formPage">
     <header className="topbar">{onBack?<button className="back" onClick={onBack}>← Tus cartas</button>:<Brand/>}<span className="stepLabel">PRIMER PASO</span></header>
     <section className="formIntro"><p className="eyebrow">TU MOMENTO DE NACER</p><h1>Empecemos<br/><em>por ti.</em></h1><p>Con estos datos ubicamos los ritmos del año, mes y día. Cuando conoces tu hora, también podemos sumar ese cuarto perfil. Todo se calcula dentro de tu dispositivo.</p></section>
     <form className="birthForm" onSubmit={submit}>
       <label>¿Cómo te llamas? <span>Opcional</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre o apodo" autoComplete="name"/></label>
-      <div className="fieldRow"><label>Fecha de nacimiento<span className="nativeInputFrame"><input type="date" value={date} onChange={e=>setDate(e.target.value)} min="1900-01-01" max="2050-12-31" required/></span></label><label>Hora de nacimiento <span>{timeUnknown?'Hora abierta':''}</span><span className="nativeInputFrame"><input type="time" value={time} onChange={e=>setTime(e.target.value)} disabled={timeUnknown} required={!timeUnknown}/></span><button type="button" className="unknownTimeToggle" aria-pressed={timeUnknown} onClick={()=>{setTimeUnknown(value=>!value);setTime('')}}>{timeUnknown?'Ingresar una hora':'No conozco mi hora'}</button></label></div>
+      <div className="fieldRow"><label>Fecha de nacimiento<div className="birthParts"><input type="text" inputMode="numeric" value={day} onChange={e=>setDay(digits(e.target.value,2))} placeholder="Día" aria-label="Día de nacimiento" autoComplete="bday-day"/><input type="text" inputMode="numeric" value={month} onChange={e=>setMonth(digits(e.target.value,2))} placeholder="Mes" aria-label="Mes de nacimiento" autoComplete="bday-month"/><input type="text" inputMode="numeric" value={year} onChange={e=>setYear(digits(e.target.value,4))} placeholder="Año" aria-label="Año de nacimiento" autoComplete="bday-year"/></div></label><label>Hora de nacimiento <span>{timeUnknown?'Hora abierta':''}</span><div className="timeParts"><input type="text" inputMode="numeric" value={hour} onChange={e=>setHour(digits(e.target.value,2))} placeholder="Hora (0–23)" aria-label="Hora de nacimiento" disabled={timeUnknown}/><input type="text" inputMode="numeric" value={minute} onChange={e=>setMinute(digits(e.target.value,2))} placeholder="Minutos" aria-label="Minutos de nacimiento" disabled={timeUnknown}/></div><button type="button" className="unknownTimeToggle" aria-pressed={timeUnknown} onClick={()=>{setTimeUnknown(value=>!value);setHour('');setMinute('')}}>{timeUnknown?'Ingresar una hora':'No conozco mi hora'}</button></label></div>
       <label className="locationField">Lugar de nacimiento
         <input role="combobox" aria-expanded={open&&suggestions.length>0} aria-controls="location-options" aria-autocomplete="list" value={place} onChange={e=>{setPlace(e.target.value);setSelected(null);setOpen(true);setHighlighted(0)}} onFocus={()=>setOpen(true)} onBlur={()=>setTimeout(()=>setOpen(false),150)} onKeyDown={event=>{
           if(event.key==='ArrowDown'){event.preventDefault();setOpen(true);setHighlighted(value=>Math.min(suggestions.length-1,value+1))}
@@ -235,9 +240,9 @@ function BirthForm({onSubmit,onBack}:{onSubmit:(x:BirthInput)=>void;onBack?:()=>
 
 const STORY_DURATION=10000
 const LOADING_DURATION=3000
-function storyCount(chart:Chart|null){return chart?4+profileOrder(chart).length+10:1}
+function storyCount(chart:Chart|null){return chart?profileOrder(chart).length+11:1}
 function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:number;setStep:(n:number)=>void;onClose:()=>void;onSave:()=>void;onFinish:()=>void}){
-  const total=storyCount(chart),identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],profileKeys=profileOrder(chart),afterPillars=4+profileKeys.length
+  const total=storyCount(chart),strong=strongestElement(chart)[0],low=lowestElement(chart)[0],profileKeys=profileOrder(chart),afterPillars=3+profileKeys.length
   const duration=step===0?LOADING_DURATION:STORY_DURATION
   const next=()=>step===total-1?onFinish():setStep(Math.min(total-1,step+1)),prev=()=>setStep(Math.max(0,step-1))
   const [paused,setPaused]=useState(false)
@@ -255,24 +260,21 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
   const cancelPress=()=>setPaused(false)
   let content:ReactNode
   if(step===0) content=<LoadingStory/>
-  else if(step===1) content=<StoryCenter kicker="ESTE ERES TÚ"><Glyph stem={chart.dayMaster.stem} size={96}/><h1>{identity.name}</h1><p>{identity.caption}</p></StoryCenter>
-  else if(step===2) content=<StoryQuote kicker="TU PERFIL PRINCIPAL" title={identity.headline} body={`${identity.body} ${identity.friction}`}/>
-  else if(step===3) content=<StoryQuote kicker={`TU CARTA TIENE ${profileCountLabel(chart).toUpperCase()} VOCES`} title="Tu personalidad cambia de matiz según el espacio." body={chart.birth.timeUnknown?'El año, el mes y el día cuentan cómo te mueves en distintos lugares de tu vida. La hora queda abierta y puede sumarse cuando la conozcas.':'El año, el mes, el día y la hora cuentan cómo te mueves en distintos lugares de tu vida. Juntos forman una imagen mucho más completa que el signo del año que quizá ya conocías.'} extra={<FourDots count={profileKeys.length}/>}/>
-  else if(step>=4&&step<afterPillars){const key=profileKeys[step-4],pillar=chart.pillars[key],reading=pillarReading(key,pillar);content=<PillarStory pillarKey={key} chart={chart} title={reading.headline} body={reading.body}/>}
+  else if(step===1) content=<IdentityReveal chart={chart}/>
+  else if(step===2) content=<ProfilesPrelude chart={chart}/>
+  else if(step>=3&&step<afterPillars){const key=profileKeys[step-3],pillar=chart.pillars[key],reading=pillarReading(key,pillar);content=<PillarStory pillarKey={key} chart={chart} title={reading.headline} body={shortStoryCopy(reading.body)}/>}
   else if(step===afterPillars) content=<ProfilesStory chart={chart}/>
-  else if(step===afterPillars+1) content=<StoryQuote kicker="TUS CINCO RECURSOS" title="Todos tenemos los cinco elementos y recurrimos a cada uno con distinta facilidad." body="El elemento más alto suele aparecer con mayor facilidad. Los elementos más bajos también pueden desarrollarse con práctica. Cada elemento aporta un recurso diferente." extra={<ElementRow chart={chart}/>}/>
+  else if(step===afterPillars+1) content=<ElementsStory chart={chart}/>
   else if(step===afterPillars+2) content=<ElementStory element={strong} label="TU RECURSO MÁS DISPONIBLE" count={chart.elements[strong]} strongest/>
-  else if(step===afterPillars+3) content=<ElementStory element={low} label="EL QUE PIDE MÁS INTENCIÓN" count={chart.elements[low]}/>
-  else if(step===afterPillars+4) content=<ElementsStory chart={chart}/>
-  else if(step===afterPillars+5) content=<ActionsStory chart={chart}/>
-  else if(step===afterPillars+6) content=<InteractionsStory chart={chart}/>
-  else if(step===afterPillars+7) content=<StoryQuote kicker="HAY UN ESPACIO EN BLANCO" title="El vacío señala lo que construyes a tu manera." body="En BaZi, un vacío marca una parte de la vida que pide experiencia propia, prueba y una definición menos heredada." extra={<span className="voidRing" aria-hidden="true"/>}/>
-  else if(step===afterPillars+8){
+  else if(step===afterPillars+3) content=<ElementStory element={low} label="EL RECURSO QUE PRACTICAS" count={chart.elements[low]}/>
+  else if(step===afterPillars+4) content=<ActionsStory chart={chart}/>
+  else if(step===afterPillars+5) content=<InteractionsStory chart={chart}/>
+  else if(step===afterPillars+6){
     const copy=voidReading(chart)
-    content=<StoryQuote kicker="ASÍ APARECE EN TU MAPA" title={copy.title} body={copy.body}/>
+    content=<StoryQuote kicker="TU VACÍO" title={copy.title} body={shortStoryCopy(copy.body,170)} extra={<span className="voidRing" aria-hidden="true"/>}/>
   }
   else content=<FinalStory chart={chart}/>
-  return <main className={`storyShell${paused?' storyPaused':''}${step===total-1?' storyComplete':''}`} style={{'--story-duration':`${duration}ms`} as CSSProperties}>
+  return <main className={`storyShell story-${step}${paused?' storyPaused':''}${step===total-1?' storyComplete':''}`} style={{'--story-duration':`${duration}ms`} as CSSProperties}>
     <div className="progress" aria-label={step===0?'Calculando tu mapa':`Historia ${step} de ${total-1}`}>{step>0&&Array.from({length:total-1},(_,i)=>{const storyStep=i+1;return <i key={storyStep} className={storyStep<step?'done':storyStep===step?'active':''}/>})}</div>
     <Brand/><button className="storyClose" onClick={onClose} aria-label="Saltar historias y abrir la lectura completa">×</button>
     <section className={`story story-${step}`} key={step}>{content}</section>
@@ -283,6 +285,9 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
 }
 
 function LoadingStory(){return <StoryCenter kicker="UNA TRADICIÓN DE MÁS DE MIL AÑOS"><div className="loader"><i/><i/><i/><span>十</span></div><h2>Ordenando tu mapa</h2><p>Estamos ubicando los ritmos del año, mes, día y hora en que naciste.</p></StoryCenter>}
+function shortStoryCopy(text:string,max=145){const sentence=text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim()||text;if(sentence.length<=max)return sentence;return `${sentence.slice(0,max).replace(/\s+\S*$/,'')}…`}
+function IdentityReveal({chart}:{chart:Chart}){const identity=identityMeta[chart.dayMaster.stem];return <div className="identityReveal"><div className="identityHalo" aria-hidden="true"><i/><i/><i/></div><Glyph stem={chart.dayMaster.stem} size={104}/><p className="eyebrow">TU DÍA MAESTRO</p><h1>{identity.name}</h1><strong>{identity.headline}</strong></div>}
+function ProfilesPrelude({chart}:{chart:Chart}){const keys=profileOrder(chart);return <div className="profilesPrelude"><p className="eyebrow">UNA PERSONA, VARIOS ESPACIOS</p><h2>Cada parte de tu carta aparece en un momento distinto.</h2><div className={`profileCurtain profiles-${keys.length}`} aria-hidden="true">{keys.map((key,index)=><i key={key}><span>0{index+1}</span><b>{pillarMeta[key].eyebrow}</b></i>)}</div></div>}
 function StoryCenter({kicker,children}:{kicker:string;children:ReactNode}){return <div className="storyCenter"><p className="eyebrow">{kicker}</p>{children}</div>}
 function StoryQuote({kicker,title,body,extra}:{kicker:string;title:string;body:string;extra?:ReactNode}){return <div className="storyCopy"><p className="eyebrow">{kicker}</p><h2>{title}</h2><p>{body}</p>{extra}</div>}
 function Technical({children}:{children:ReactNode}){return <small className="technical">DATO TÉCNICO · {children}</small>}
@@ -293,14 +298,14 @@ function PillarStory({pillarKey,chart,title,body}:{pillarKey:PillarKey;chart:Cha
   return <div className="pillarStory"><p className="eyebrow">{meta.eyebrow.toUpperCase()}</p><div className="pillarHero"><Glyph stem={pillar.stem} size={80}/><div><small>{meta.title}</small><h2>{identity.name}</h2><em>{branches[pillar.branch].label}</em></div></div><h3>{title}</h3><p>{body}</p></div>
 }
 function MiniProfile({pillarKey,chart}:{pillarKey:PillarKey;chart:Chart}){const p=chart.pillars[pillarKey],i=identityMeta[p.stem];return <div className="miniProfile"><Glyph stem={p.stem} size={40}/><small>{pillarMeta[pillarKey].eyebrow}</small><b>{i.name}</b><span>{branches[p.branch].label}</span></div>}
-function ProfilesStory({chart}:{chart:Chart}){return <div className="profilesStory"><p className="eyebrow">TUS {profileCountLabel(chart).toUpperCase()} PERFILES</p><h2>Distintos espacios.<br/>La misma persona.</h2><div className={`profilesGrid profiles-${profileOrder(chart).length}`}>{profileOrder(chart).map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><p>{profileSummary(chart)}</p><ShareActions kind="profiles" chart={chart} shareLabel="Compartir mis perfiles"/></div>}
+function ProfilesStory({chart}:{chart:Chart}){return <div className="profilesStory"><p className="eyebrow">TUS {profileCountLabel(chart).toUpperCase()} PERFILES</p><h2>Así cambias según el espacio.</h2><div className={`profilesGrid profiles-${profileOrder(chart).length}`}>{profileOrder(chart).map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><p>{shortStoryCopy(profileSummary(chart),165)}</p><ShareActions kind="profiles" chart={chart} shareLabel="Compartir mis perfiles"/></div>}
 function ElementRow({chart}:{chart:Chart}){const max=Math.max(...Object.values(chart.elements));return <div className="elementRow">{ELEMENT_ORDER.map(element=><div key={element}><ElementMark element={element}/><i style={{height:`${28+chart.elements[element]/max*72}px`}}/><small>{elementMeta[element].label}</small></div>)}</div>}
-function ElementStory({element,label,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Es una respuesta a la que vuelves con facilidad.`:`${meta.sentence} Este recurso gana presencia cuando lo eliges y lo practicas de forma consciente.`}</p></StoryCenter>}
-function ElementsStory({chart}:{chart:Chart}){return <div className="elementsStory"><p className="eyebrow">TU MEZCLA, DE UN VISTAZO</p><h2>Tus cinco elementos muestran los recursos que usas con mayor facilidad.</h2><ElementRow chart={chart}/><p>El elemento que tienes más alto lo puedes utilizar de forma más sencilla. Los elementos que tienes más bajos también los puedes trabajar. Ningún elemento es mejor que otro.</p><ShareActions kind="elements" chart={chart} shareLabel="Compartir mi gráfica"/></div>}
+function ElementStory({element,label,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Aquí aparece con facilidad.`:`${meta.sentence} La práctica le da más presencia.`}</p></StoryCenter>}
+function ElementsStory({chart}:{chart:Chart}){return <div className="elementsStory"><p className="eyebrow">TUS CINCO RECURSOS</p><h2>Esta es la mezcla que usas cada día.</h2><ElementRow chart={chart}/><p>La altura muestra cuáles aparecen primero y cuáles requieren práctica.</p><ShareActions kind="elements" chart={chart} shareLabel="Compartir mi gráfica"/></div>}
 
 function topActions(chart:Chart){return (Object.entries(chart.tenGods) as [TenGodKey,number][]).sort((a,b)=>b[1]-a[1]).slice(0,3)}
-function ActionsStory({chart}:{chart:Chart}){const labels=['Tu respuesta más automática','También muy disponible','Otro recurso cercano'];return <div className="actionsStory"><p className="eyebrow">TUS FORMAS DE ACTUAR</p><h2>Cuando algo importa,<br/>estas respuestas aparecen primero.</h2><div className="actionList">{topActions(chart).map(([key],i)=><article key={key}><span aria-hidden="true">→</span><div><small>{labels[i]}</small><b>{actionMeta[key].name}</b><p>{actionMeta[key].copy}</p></div></article>)}</div><ShareActions kind="actions" chart={chart} shareLabel="Compartir mis formas de actuar"/></div>}
-function InteractionsStory({chart}:{chart:Chart}){const data=chart.interactions[0]?interactionReading(chart.interactions[0]):{title:`Tus ${profileCountLabel(chart)} ritmos avanzan con bastante independencia`,body:'Tus ramas natales dejan espacio para que cada área responda con su propio ritmo. Las etapas y las fechas futuras pueden activar encuentros distintos.'};return <div className="interactionStory"><p className="eyebrow">LO QUE PASA CUANDO TUS PARTES SE ENCUENTRAN</p><h2>{data.title}</h2><p>{data.body}</p><div className="orbit" aria-hidden="true"><i/><i/><span>十</span></div></div>}
+function ActionsStory({chart}:{chart:Chart}){const labels=['Aparece primero','También está cerca','Tu tercera opción'];return <div className="actionsStory"><p className="eyebrow">TUS FORMAS DE ACTUAR</p><h2>Tres respuestas que aparecen cuando algo importa.</h2><div className="actionList">{topActions(chart).map(([key],i)=><article key={key}><span aria-hidden="true">→</span><div><small>{labels[i]}</small><b>{actionMeta[key].name}</b><p>{shortStoryCopy(actionMeta[key].copy,100)}</p></div></article>)}</div><ShareActions kind="actions" chart={chart} shareLabel="Compartir mis formas de actuar"/></div>}
+function InteractionsStory({chart}:{chart:Chart}){const data=chart.interactions[0]?interactionReading(chart.interactions[0]):{title:`Tus ${profileCountLabel(chart)} ritmos avanzan con bastante independencia`,body:'Cada área responde con su propio ritmo.'};return <div className="interactionStory"><p className="eyebrow">CUANDO TUS PARTES SE ENCUENTRAN</p><h2>{data.title}</h2><p>{shortStoryCopy(data.body,150)}</p><div className="orbit" aria-hidden="true"><i/><i/><span>十</span></div></div>}
 function FinalStory({chart}:{chart:Chart}){const identity=identityMeta[chart.dayMaster.stem],voidCopy=voidReading(chart);return <div className="finalStory"><p className="eyebrow">ESTE ERES TÚ</p><div className="finalCard"><Glyph stem={chart.dayMaster.stem} size={74}/><small>TU MAPA EN UNA IMAGEN</small><h2>{identity.name}</h2><p>{identity.headline}</p><div className={`finalProfiles profiles-${profileOrder(chart).length}`}>{profileOrder(chart).map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><span>{voidCopy.title}</span></div><ShareActions kind="summary" chart={chart} shareLabel="Compartir mi mapa"/></div>}
 
 async function saveLater(input:BirthInput,step:number,notify:(x:string)=>void){
@@ -564,8 +569,8 @@ function CyclesPage({chart,library,active,onSwitch,onHome,onReading,onTool,onSet
   const reading=cycleReading(chart,chart.birth.sexAtBirth),current=reading.current
   return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="cycles" onTool={onTool}/>
     <section className="timeHero cycleHero"><div><p className="eyebrow">TU CICLO ACTUAL · {current.startYear}—{current.endYear}</p><h1>Tu ciclo actual es: {current.title}.</h1><p>{current.body}</p><div className="timeHeroMeta"><Technical>{stems[current.pillar.stem].han} · {stems[current.pillar.stem].label} · {branches[current.pillar.branch].label}</Technical><AnimalGlyph branch={current.pillar.branch} size={64}/></div></div></section>
-    <section className="cycleIntro"><p>Cada diez años comienza una etapa de vida con prioridades y recursos distintos. Tu secuencia empezó alrededor de los {reading.startAge} años.</p></section>
-    <ol className="cycleTimeline">{reading.items.map(item=><li className={item.current?'current':''} key={item.startYear}><div className="cycleYears"><b>{item.startYear}</b><span>{item.endYear}</span><small>{item.startAge}—{item.endAge} años</small></div><AnimalGlyph branch={item.pillar.branch} size={50}/><div><small>{item.current?'AQUÍ ESTÁS AHORA':item.focus.toUpperCase()}</small><h2>{item.title}</h2><p>{item.body}</p></div></li>)}</ol>
+    <section className="cycleIntro"><p>Tu primer ciclo de diez años comenzó el {formatFullDate(reading.startDate)}, cuando tenías {reading.startAge} años cumplidos. Antes transcurrió tu etapa inicial; después, cada nuevo ciclo empieza a los {reading.startAge+10}, {reading.startAge+20}, {reading.startAge+30} años y continúa con el mismo ritmo.</p></section>
+    <ol className="cycleTimeline"><li className="initial"><div className="cycleYears"><b>{reading.initial.startYear}</b><span>{reading.initial.endYear}</span><small>0—{reading.initial.endAge} años cumplidos</small></div><span className="cycleMark">○</span><div><small>ANTES DEL PRIMER CICLO</small><h2>Tu etapa inicial</h2><p>Va desde tu nacimiento hasta el día anterior al inicio de la secuencia.</p></div></li>{reading.items.map(item=><li className={item.current?'current':''} key={item.startDate}><div className="cycleYears"><b>{item.startYear}</b><span>{item.endYear}</span><small>{item.startAge}—{item.endAge} años cumplidos</small></div><AnimalGlyph branch={item.pillar.branch} size={50}/><div><small>{item.current?'AQUÍ ESTÁS AHORA':item.focus.toUpperCase()}</small><h2>{item.title}</h2><p>{item.body}</p><span className="cycleExactDate">Desde {formatFullDate(item.startDate)}</span></div></li>)}</ol>
   </main>
 }
 function SectionHead({kicker,title}:{kicker:string;title:string}){return <header className="sectionHead"><div><p className="eyebrow">{kicker}</p><h2>{title}</h2></div></header>}
