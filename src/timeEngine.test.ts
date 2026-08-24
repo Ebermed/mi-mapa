@@ -17,6 +17,18 @@ describe('lecturas personales de tiempo', () => {
     expect(first.personal).not.toBe(otherChart.personal)
   })
 
+  it('marca el día de choque personal contra el animal del año de nacimiento', () => {
+    const horseDay = dayReading(eber, '2026-08-24')
+    const nextDay = dayReading(eber, '2026-08-25')
+
+    expect(eber.pillars.year.branch).toBe('rat')
+    expect(horseDay.pillar.branch).toBe('horse')
+    expect(horseDay.personalClash).toMatchObject({active:true,birthBranch:'rat',dayBranch:'horse'})
+    expect(horseDay.personalClash.title).toBe('Caballo choca con Rata')
+    expect(classifyActivity(eber, '2026-08-24', 'launch').state).toBe('move')
+    expect(nextDay.personalClash.active).toBe(false)
+  })
+
   it('entrega un enfoque mensual y fechas concretas para dos configuraciones', () => {
     const first = monthReading(eber, 2026, 8)
     const second = monthReading(anju, 2026, 8)
