@@ -1,10 +1,10 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import {
   branches, branchPace, calculateChart, elementMeta, identityMeta, interactionReading,
   lowestElement, pillarLabel, pillarMeta, pillarReading, profileSummary, strongestElement,
   stems, voidReading,
-  type BirthInput, type Chart, type ElementKey, type PillarKey, type StemKey, type TenGodKey,
+  type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
 import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
@@ -16,6 +16,18 @@ type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
 const STORE='mi-mapa.library.v1'
 const PILLAR_ORDER:PillarKey[]=['hour','day','month','year']
 const ELEMENT_ORDER:ElementKey[]=['wood','fire','earth','metal','water']
+type TechnicalPillarKey=PillarKey|AuxiliaryPillarKey
+const auxiliaryMeta:Record<AuxiliaryPillarKey,{title:string;eyebrow:string;intro:string}>={
+  life:{title:'Palacio de Vida',eyebrow:'Tu vida',intro:'Cruza el año, el mes y la hora para mostrar otra firma personal dentro de tu carta.'},
+  conception:{title:'Palacio de la Concepción',eyebrow:'Tu origen',intro:'Parte del pilar del mes y representa tu configuración más temprana.'},
+}
+const elementPortrait:Record<ElementKey,string>={
+  wood:'Cuando algo todavía puede crecer, encuentras por dónde empezar y ajustas la ruta hasta hacerlo avanzar.',
+  fire:'Cuando algo te entusiasma, se te nota: lo mueves, lo compartes y haces que otras personas miren hacia ahí.',
+  earth:'Cuando te comprometes, sostienes el proceso y a la gente hasta encontrar cómo hacerlo funcionar.',
+  metal:'Ves rápido qué sobra, qué falta y dónde poner el límite para que algo funcione mejor.',
+  water:'Antes de moverte, observas, conectas detalles y encuentras una ruta que otras personas todavía pasan por alto.',
+}
 function profileOrder(chart:Chart){return chart.birth.timeUnknown?PILLAR_ORDER.filter(key=>key!=='hour'):PILLAR_ORDER}
 function profileCountLabel(chart:Chart){return chart.birth.timeUnknown?'tres':'cuatro'}
 const iconPaths:Record<StemKey,string>={
@@ -333,12 +345,47 @@ function drawAnimalPosterIcon(ctx:CanvasRenderingContext2D,branch:keyof typeof b
 function drawSeal(ctx:CanvasRenderingContext2D,x:number,y:number,radius:number,fill:string){ctx.save();ctx.globalAlpha=.18;ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=fill;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,radius-1,0,Math.PI*2);ctx.stroke();ctx.restore()}
 function drawProfilePosterCard(ctx:CanvasRenderingContext2D,chart:Chart,key:PillarKey,x:number,y:number,w:number,h:number){const pillar=chart.pillars[key],color=elementMeta[stems[pillar.stem].element].dark;ctx.fillStyle='rgba(255,255,255,.72)';roundRect(ctx,x,y,w,h,28);ctx.fill();ctx.strokeStyle='rgba(60,50,42,.1)';ctx.stroke();drawStemPosterIcon(ctx,pillar.stem,x+70,y+h/2,64,color);drawAnimalPosterIcon(ctx,pillar.branch,x+w-56,y+54,44,color);ctx.fillStyle='#3e3832';ctx.textAlign='left';ctx.font=posterFont(14,800);ctx.fillText(pillarMeta[key].eyebrow.toUpperCase(),x+125,y+44);ctx.font=posterFont(34,700,true);ctx.fillText(identityMeta[pillar.stem].name,x+125,y+88);ctx.font=posterFont(17,500);ctx.fillText(branches[pillar.branch].label,x+125,y+120);ctx.font=posterFont(14,600);ctx.fillStyle=color;ctx.fillText(pillarMeta[key].title.toUpperCase(),x+125,y+150)}
 function drawIdentityPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],polarity=chart.dayMaster.polarity==='yin'?'Yin':'Yang';ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText('MI DÍA MAESTRO',540,162);drawSeal(ctx,540,360,156,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,540,360,196,meta.dark);ctx.font=posterFont(fitPosterText(ctx,identity.name,820,118,72),760,true);ctx.fillText(identity.name,540,630);ctx.font=posterFont(31,520,true);drawPosterText(ctx,identity.headline,540,700,820,42,3,'center');ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,156,875,768,178,34);ctx.fill();ctx.strokeStyle='rgba(60,50,42,.1)';ctx.stroke();ctx.fillStyle=meta.dark;ctx.font=posterFont(14,800);ctx.fillText('ASÍ SE ENCUENTRA EN MI CARTA',540,925);ctx.font=posterFont(38,700,true);ctx.fillText(`${meta.label} ${polarity} · ${chart.dayMaster.strength}`,540,985);ctx.font=posterFont(20,500);ctx.fillText('Mi centro: la forma en que vuelvo a mí para decidir.',540,1025)}
-function drawProfilesPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],keys=profileOrder(chart),heading=`MIS ${profileCountLabel(chart).toUpperCase()} PERFILES`;ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(fitPosterText(ctx,heading,850,68,44),750,true);ctx.fillText(heading,540,190);drawSeal(ctx,540,340,94,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,540,340,118,meta.dark);ctx.font=posterFont(fitPosterText(ctx,identity.name,760,86,54),700,true);ctx.fillText(identity.name,540,485);ctx.font=posterFont(26,500,true);drawPosterText(ctx,identity.headline,540,540,790,34,2,'center');keys.forEach((key,index)=>drawProfilePosterCard(ctx,chart,key,keys.length===3&&index===2?320:index%2?552:88,index<2?650:852,440,176))}
+function drawProfilesPoster(ctx:CanvasRenderingContext2D,chart:Chart){
+  const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],keys=profileOrder(chart),heading=`MIS ${profileCountLabel(chart).toUpperCase()} PERFILES`
+  ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(16,800);ctx.fillText(heading,88,158)
+  drawSeal(ctx,182,292,78,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,182,292,96,meta.dark)
+  ctx.font=posterFont(fitPosterText(ctx,identity.name,650,78,50),720,true);ctx.fillText(identity.name,300,285)
+  ctx.font=posterFont(23,500,true);drawPosterText(ctx,identity.headline,300,330,650,31,3)
+  keys.forEach((key,index)=>drawProfilePosterCard(ctx,chart,key,keys.length===3&&index===2?320:index%2?552:88,index<2?470:715,440,215))
+  ctx.fillStyle='rgba(255,255,255,.62)';roundRect(ctx,88,965,904,150,30);ctx.fill()
+  ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(14,800);ctx.fillText('LA PERSONA ES LA MISMA; CAMBIA EL ESPACIO',122,1012)
+  ctx.font=posterFont(22,500,true);drawPosterText(ctx,profileSummary(chart),122,1054,820,30,2)
+}
 function drawElementPosterSeal(ctx:CanvasRenderingContext2D,element:ElementKey,value:number,max:number,x:number,y:number){const color=elementMeta[element].color,r=64+value/max*25;ctx.strokeStyle='rgba(60,50,42,.12)';ctx.lineWidth=10;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.strokeStyle=color;ctx.lineCap='round';ctx.beginPath();ctx.arc(x,y,r,-Math.PI/2,-Math.PI/2+Math.PI*2*(.18+.82*value/max));ctx.stroke();drawStemPosterIcon(ctx,elementStem[element],x,y,72,elementMeta[element].dark);ctx.fillStyle=elementMeta[element].dark;ctx.textAlign='center';ctx.font=posterFont(15,800);ctx.fillText(elementMeta[element].label.toUpperCase(),x,y+r+32)}
-function drawElementsPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],max=Math.max(...Object.values(chart.elements));ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText(`${identity.name.toUpperCase()} · MIS RECURSOS`,540,162);ctx.font=posterFont(fitPosterText(ctx,'MIS CINCO ELEMENTOS',870,68,42),760,true);ctx.fillText('MIS CINCO ELEMENTOS',540,240);const positions=[[180,430],[540,390],[900,430],[350,650],[730,650]];ELEMENT_ORDER.forEach((element,index)=>drawElementPosterSeal(ctx,element,chart.elements[element],max,positions[index][0],positions[index][1]));ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,90,805,900,300,36);ctx.fill();drawStemPosterIcon(ctx,elementStem[strong],195,920,100,elementMeta[strong].dark);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(15,800);ctx.fillText('EL RECURSO QUE MÁS USAS',285,860);ctx.font=posterFont(44,700,true);ctx.fillText(elementMeta[strong].label,285,920);ctx.font=posterFont(25,500,true);drawPosterText(ctx,`${elementMeta[strong].sentence} ${elementMeta[low].article.charAt(0).toUpperCase()+elementMeta[low].article.slice(1)} también puede crecer con práctica.`,285,970,620,34,4)}
+function drawElementsPoster(ctx:CanvasRenderingContext2D,chart:Chart){
+  const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],max=Math.max(...Object.values(chart.elements))
+  ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText(`${identity.name.toUpperCase()} · MIS RECURSOS`,540,162)
+  ctx.font=posterFont(fitPosterText(ctx,'MIS CINCO ELEMENTOS',870,68,42),760,true);ctx.fillText('MIS CINCO ELEMENTOS',540,240)
+  const positions=[[180,430],[540,390],[900,430],[350,650],[730,650]];ELEMENT_ORDER.forEach((element,index)=>drawElementPosterSeal(ctx,element,chart.elements[element],max,positions[index][0],positions[index][1]))
+  ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,90,805,900,300,36);ctx.fill()
+  drawStemPosterIcon(ctx,elementStem[strong],195,920,100,elementMeta[strong].dark)
+  ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(15,800);ctx.fillText('ASÍ SE NOTA EN TI',285,860)
+  ctx.font=posterFont(44,700,true);ctx.fillText(elementMeta[strong].label,285,920)
+  ctx.font=posterFont(25,500,true);drawPosterText(ctx,elementPortrait[strong],285,970,620,34,4)
+}
 function drawActionCard(ctx:CanvasRenderingContext2D,chart:Chart,key:TenGodKey,index:number,x:number,y:number,w:number,h:number,feature=false){const meta=elementMeta[chart.dayMaster.element];ctx.fillStyle=feature?'rgba(255,255,255,.82)':'rgba(255,255,255,.66)';roundRect(ctx,x,y,w,h,34);ctx.fill();ctx.strokeStyle='rgba(60,50,42,.1)';ctx.stroke();ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(x+58,y+60,30,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font=posterFont(17,800);ctx.fillText(`0${index+1}`,x+58,y+67);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(feature?43:31,700,true);drawPosterText(ctx,actionMeta[key].name,x+105,y+63,w-145,feature?48:38,2);ctx.font=posterFont(feature?23:19,500);drawPosterText(ctx,actionMeta[key].copy,x+48,y+(feature?145:120),w-96,feature?32:27,feature?4:5)}
 function drawActionsPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],actions=topActions(chart);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(16,800);ctx.fillText('CUANDO ALGO IMPORTA',88,164);ctx.font=posterFont(64,760,true);drawPosterText(ctx,'ASÍ SUELO RESPONDER',88,238,720,68,2);drawSeal(ctx,890,225,100,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,890,225,120,meta.dark);drawActionCard(ctx,chart,actions[0][0],0,88,370,904,300,true);drawActionCard(ctx,chart,actions[1][0],1,88,700,436,360);drawActionCard(ctx,chart,actions[2][0],2,556,700,436,360)}
-function drawTodayPoster(ctx:CanvasRenderingContext2D,chart:Chart,daily:ReturnType<typeof dayReading>){const meta=elementMeta[chart.dayMaster.element];ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(17,800);ctx.fillText(formatLongDate(daily.date).toUpperCase(),88,165);ctx.font=posterFont(25,600,true);ctx.fillText('HOY ES UN DÍA PARA',88,220);ctx.font=posterFont(fitPosterText(ctx,daily.rhythm.toUpperCase(),650,104,58),780,true);ctx.fillText(daily.rhythm.toUpperCase(),88,320);drawSeal(ctx,840,270,140,meta.color);drawAnimalPosterIcon(ctx,daily.pillar.branch,840,270,174,meta.dark);ctx.font=posterFont(28,600,true);drawPosterText(ctx,`${daily.body} ${daily.personal}`,88,430,890,38,4);ctx.font=posterFont(15,800);ctx.fillText('TRES COSAS QUE PUEDEN FLUIR MEJOR',88,630);daily.opportunity.forEach((item,index)=>{const y=675+index*130;ctx.fillStyle='rgba(255,255,255,.76)';roundRect(ctx,88,y,904,102,26);ctx.fill();ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(140,y+51,22,0,Math.PI*2);ctx.fill();drawStemPosterIcon(ctx,chart.dayMaster.stem,140,y+51,26,'#fff');ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(28,650);ctx.fillText(item.charAt(0).toUpperCase()+item.slice(1),185,y+61)})}
+function drawTodayPoster(ctx:CanvasRenderingContext2D,chart:Chart,daily:ReturnType<typeof dayReading>){
+  const meta=elementMeta[chart.dayMaster.element]
+  ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(16,800);ctx.fillText(formatLongDate(daily.date).toUpperCase(),88,156)
+  ctx.font=posterFont(21,650,true);ctx.fillText('HOY ES UN DÍA PARA',88,208)
+  ctx.font=posterFont(fitPosterText(ctx,daily.rhythm.toUpperCase(),640,88,52),780,true);ctx.fillText(daily.rhythm.toUpperCase(),88,298)
+  drawSeal(ctx,850,248,112,meta.color);drawAnimalPosterIcon(ctx,daily.pillar.branch,850,248,136,meta.dark)
+  ctx.strokeStyle='rgba(60,50,42,.12)';ctx.beginPath();ctx.moveTo(88,360);ctx.lineTo(992,360);ctx.stroke()
+  ctx.font=posterFont(26,560,true);drawPosterText(ctx,`${daily.body} ${daily.personal}`,88,420,890,36,4)
+  ctx.fillStyle='rgba(255,255,255,.56)';roundRect(ctx,88,610,904,505,36);ctx.fill()
+  ctx.fillStyle=meta.dark;ctx.font=posterFont(15,800);ctx.fillText('TRES COSAS QUE PUEDEN FLUIR MEJOR',128,664)
+  daily.opportunity.forEach((item,index)=>{
+    const y=698+index*128;ctx.fillStyle='rgba(255,255,255,.82)';roundRect(ctx,120,y,840,104,24);ctx.fill()
+    ctx.fillStyle=meta.color;ctx.textAlign='center';ctx.font=posterFont(24,800,true);ctx.fillText(String(index+1).padStart(2,'0'),166,y+63)
+    ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(26,650);ctx.fillText(item.charAt(0).toUpperCase()+item.slice(1),220,y+63)
+  })
+}
 function drawSummaryPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=elementMeta[chart.dayMaster.element],identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],keys=profileOrder(chart),cardWidth=keys.length===3?280:208,gap=keys.length===3?32:22;ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(16,800);ctx.fillText('MI PERFIL PRINCIPAL',540,155);drawSeal(ctx,540,305,112,meta.color);drawStemPosterIcon(ctx,chart.dayMaster.stem,540,305,138,meta.dark);ctx.font=posterFont(fitPosterText(ctx,identity.name,770,94,60),760,true);ctx.fillText(identity.name,540,500);ctx.font=posterFont(28,500,true);drawPosterText(ctx,identity.headline,540,555,810,37,3,'center');[['MI RECURSO MÁS DISPONIBLE',strong],['EL QUE PUEDO TRABAJAR MÁS',low]].forEach(([label,element],index)=>{const key=element as ElementKey,x=index?552:88;ctx.fillStyle='rgba(255,255,255,.7)';roundRect(ctx,x,690,440,205,30);ctx.fill();drawStemPosterIcon(ctx,elementStem[key],x+74,792,84,elementMeta[key].dark);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(13,800);ctx.fillText(String(label),x+135,746);ctx.font=posterFont(37,700,true);ctx.fillText(elementMeta[key].label,x+135,805);ctx.font=posterFont(16,500);drawPosterText(ctx,elementMeta[key].sentence,x+135,838,260,23,2)});keys.forEach((key,index)=>{const p=chart.pillars[key],x=88+index*(cardWidth+gap);ctx.fillStyle='rgba(255,255,255,.62)';roundRect(ctx,x,935,cardWidth,190,24);ctx.fill();drawStemPosterIcon(ctx,p.stem,x+cardWidth*.28,998,54,elementMeta[stems[p.stem].element].dark);drawAnimalPosterIcon(ctx,p.branch,x+cardWidth*.76,990,38,elementMeta[branches[p.branch].element].dark);ctx.fillStyle=meta.dark;ctx.textAlign='center';ctx.font=posterFont(12,800);ctx.fillText(pillarMeta[key].eyebrow.toUpperCase(),x+cardWidth/2,1058);ctx.font=posterFont(26,700,true);ctx.fillText(identityMeta[p.stem].name,x+cardWidth/2,1094)})}
 
 function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onReplay:()=>void;onTool:(view:View)=>void}){
@@ -373,9 +420,11 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
   </main>
 }
 function ExpertChart({chart}:{chart:Chart}){
-  const order:PillarKey[]=chart.birth.timeUnknown?['year','month','day']:['year','month','day','hour']
-  const [pick,setPick]=useState<{pillar:PillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:'day',kind:'stem'})
-  const pillar=chart.pillars[pick.pillar]
+  const order:TechnicalPillarKey[]=chart.birth.timeUnknown?['year','month','day','conception','life']:['year','month','day','hour','conception','life']
+  const [pick,setPick]=useState<{pillar:TechnicalPillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:'day',kind:'stem'})
+  const pillarFor=(key:TechnicalPillarKey):Pillar|undefined=>key==='life'||key==='conception'?chart.auxiliaryPillars[key]:chart.pillars[key]
+  const metaFor=(key:TechnicalPillarKey)=>key==='life'||key==='conception'?auxiliaryMeta[key]:pillarMeta[key]
+  const pillar=pillarFor(pick.pillar)||chart.pillars.day
   const selectedStem=pick.kind==='hidden'?pick.stem!:pillar.stem
   const voidCopy=voidReading(chart)
   const detail=pick.kind==='void'
@@ -385,19 +434,19 @@ function ExpertChart({chart}:{chart:Chart}){
     :pick.kind==='hidden'
       ?{title:`${identityMeta[selectedStem].name} trabaja desde el fondo`,body:`Esta parte suele aparecer después de conocerte mejor. Funciona como un recurso interno: ${identityMeta[selectedStem].body.charAt(0).toLowerCase()+identityMeta[selectedStem].body.slice(1)}`,technical:`Energía de fondo · ${stems[selectedStem].label}`}
       :{title:identityMeta[selectedStem].headline,body:identityMeta[selectedStem].body,technical:`Tallo celestial ${stems[selectedStem].han} · ${stems[selectedStem].label}`}
-  const explanation=(className:string)=><aside className={`expertExplanation ${className}`} aria-live="polite">{pick.kind==='void'?<span className="voidGlyph">○</span>:pick.kind==='branch'?<AnimalGlyph branch={pillar.branch} size={52}/>:<Glyph stem={selectedStem} size={52}/>}<div><small>{pillarMeta[pick.pillar].eyebrow} · {pick.kind==='stem'?'lo visible':pick.kind==='branch'?'la base':pick.kind==='hidden'?'lo que opera detrás':'lo que desarrollas a tu manera'}</small><h3>{detail.title}</h3><p>{detail.body}</p><Technical>{detail.technical}</Technical></div></aside>
+  const explanation=(className:string)=><aside className={`expertExplanation ${className}`} aria-live="polite">{pick.kind==='void'?<span className="voidGlyph">○</span>:pick.kind==='branch'?<AnimalGlyph branch={pillar.branch} size={52}/>:<Glyph stem={selectedStem} size={52}/>}<div><small>{metaFor(pick.pillar).eyebrow} · {pick.kind==='stem'?'lo visible':pick.kind==='branch'?'la base':pick.kind==='hidden'?'lo que opera detrás':'lo que desarrollas a tu manera'}</small><h3>{detail.title}</h3><p>{detail.body}</p><Technical>{detail.technical}</Technical></div></aside>
   const correction=Math.round(chart.birth.solarCorrectionMinutes)
   return <section className="readingSection expertSection" id="carta-completa">
     <SectionHead kicker="TU CARTA COMPLETA" title="La estructura técnica, traducida para que sí se pueda leer."/>
     <p className="expertIntro">Esta es la carta que vería una persona experta. Toca cualquier símbolo para entender qué representa sin tener que aprenderte primero toda la nomenclatura.</p>
     {chart.birth.timeUnknown?<div className="solarReceipt unknownHourReceipt"><span>HORA DE NACIMIENTO<b>ABIERTA</b></span><i>○</i><span>PILARES CALCULADOS<b>AÑO · MES · DÍA</b></span><small>La hora puede agregarse después para completar el cuarto pilar.</small></div>:<div className="solarReceipt"><span>HORA QUE ESCRIBISTE<b>{chart.birth.time}</b></span><i>→</i><span>HORA SOLAR USADA<b>{chart.birth.calculationTime}</b></span><small>{correction>=0?'+':''}{correction} min · horario histórico calculado automáticamente en {chart.birth.place}</small></div>}
-    <div className={`expertChart expertChart-${order.length}`} role="group" aria-label={`Tus ${profileCountLabel(chart)} pilares calculados`}>{order.map(key=>{const item=chart.pillars[key];return <Fragment key={key}><article className={key==='day'?'dayColumn':''}>
-      <header><small>{pillarMeta[key].eyebrow}</small><b>{pillarMeta[key].title}</b>{key==='day'&&<em>TU CENTRO</em>}</header>
+    <div className={`expertChart expertChart-${order.length}`} role="group" aria-label="Tus pilares natales y auxiliares">{order.map(key=>{const item=pillarFor(key),meta=metaFor(key);return <div className="expertPillar" key={key}>{item?<article className={key==='day'?'dayColumn':''}>
+      <header><small>{meta.eyebrow}</small><b>{meta.title}</b>{key==='day'&&<em>TU CENTRO</em>}{(key==='life'||key==='conception')&&<em>AUXILIAR</em>}</header>
       <button className="expertStem" aria-pressed={pick.pillar===key&&pick.kind==='stem'} onClick={()=>setPick({pillar:key,kind:'stem'})} style={{'--cell':elementMeta[stems[item.stem].element].soft,'--cell-dark':elementMeta[stems[item.stem].element].dark} as CSSProperties}><small>CIELO</small><Glyph stem={item.stem} size={46}/><strong>{identityMeta[item.stem].name}</strong><span>{stems[item.stem].han} · {stems[item.stem].label}</span></button>
       <button className="expertBranch" aria-pressed={pick.pillar===key&&pick.kind==='branch'} onClick={()=>setPick({pillar:key,kind:'branch'})} style={{'--cell':elementMeta[branches[item.branch].element].soft,'--cell-dark':elementMeta[branches[item.branch].element].dark} as CSSProperties}><small>TIERRA</small><AnimalGlyph branch={item.branch} size={58}/><strong>{branches[item.branch].label}</strong><span>{elementMeta[branches[item.branch].element].label}</span></button>
       <div className="hiddenStems"><small>ENERGÍA DE FONDO</small>{item.hidden.map(hidden=><button key={hidden} aria-pressed={pick.pillar===key&&pick.kind==='hidden'&&pick.stem===hidden} onClick={()=>setPick({pillar:key,kind:'hidden',stem:hidden})} style={{'--chip':elementMeta[stems[hidden].element].soft,'--chip-dark':elementMeta[stems[hidden].element].dark} as CSSProperties}><Glyph stem={hidden} size={20}/><span>{identityMeta[hidden].name}</span></button>)}</div>
-      {chart.voidPillars.includes(key)&&<button className="voidBadge" aria-pressed={pick.pillar===key&&pick.kind==='void'} onClick={()=>setPick({pillar:key,kind:'void'})}>○ Aquí toca tu vacío</button>}
-    </article>{pick.pillar===key&&explanation('expertInlineExplanation')}</Fragment>})}</div>
+      {key!=='life'&&key!=='conception'&&chart.voidPillars.includes(key)&&<button className="voidBadge" aria-pressed={pick.pillar===key&&pick.kind==='void'} onClick={()=>setPick({pillar:key,kind:'void'})}>○ Aquí toca tu vacío</button>}
+    </article>:<article className="expertLocked"><header><small>{meta.eyebrow}</small><b>{meta.title}</b><em>HORA ABIERTA</em></header><span className="voidGlyph">○</span><p>Agrega tu hora para calcular este palacio.</p></article>}{item&&pick.pillar===key&&explanation('expertInlineExplanation')}</div>})}</div>
     {explanation('expertExplanationBottom')}
   </section>
 }
