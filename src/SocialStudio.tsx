@@ -12,18 +12,18 @@ function randomIndex(length:number){return Math.floor(Math.random()*length)}
 
 function centerPost(index:number):SocialPost{
   const stem=stemOrder[index%stemOrder.length],post=buildCenterPost(stem)
-  return {...post,eyebrow:'LOS 10 CENTROS',detail:stems[stem].han}
+  return {...post,format:'center',eyebrow:'LOS 10 CENTROS',detail:stems[stem].han}
 }
 
 function animalPost(index:number):SocialPost{
   const branch=branchOrder[index%branchOrder.length],post=buildAnimalPost(branch)
-  return {...post,eyebrow:'LOS 12 ANIMALES',detail:branches[branch].han,body:`${post.body} Años: ${post.years}.`}
+  return {...post,format:'animal',eyebrow:'LOS 12 ANIMALES',detail:branches[branch].han,animalKey:branch}
 }
 
 function weeklyPosts(date:string):SocialPost[]{
   return buildWeeklyAnimalCarousel(date).map((post,index)=>({
-    title:post.title,hook:post.focus,body:`Años: ${post.years}.`,cta:post.cta,palette:post.palette,
-    eyebrow:'ESTA SEMANA',detail:branches[branchOrder[index]].han,
+    format:'week',title:post.title,hook:post.focus,body:'',years:post.years,cta:post.cta,palette:post.palette,
+    eyebrow:'ESTA SEMANA',detail:branches[branchOrder[index]].han,animalKey:post.animalKey,
     caption:`${post.title}\n\n${post.focus}\n\nAños: ${post.years}.\n\n${post.cta}`,
   }))
 }
@@ -34,7 +34,7 @@ export default function SocialStudio(){
   const selection=useMemo(()=>{
     if(format==='today'){
       const post=buildHoyPost(date)
-      return {post:{...post,body:post.curiosity,detail:post.animal} as SocialPost,index:0,total:1}
+      return {post:{...post,format:'today',body:post.curiosity,detail:post.animal,animalKey:post.animalKey} as SocialPost,index:0,total:1}
     }
     if(format==='center'){const index=randomIndex(stemOrder.length);return{post:centerPost(index),index,total:stemOrder.length}}
     if(format==='animal'){const index=randomIndex(branchOrder.length);return{post:animalPost(index),index,total:branchOrder.length}}
