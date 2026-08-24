@@ -113,3 +113,42 @@ html,body,#root,.app{max-inline-size:100%;overflow-x:clip}.formPage,.formIntro,.
 @supports(animation-timeline:view()){.readingSection>.sectionHead,.readingSection>.expertIntro,.readingSection>.shareActions,.readingSection>.elementRow,.readingSection>.voidLong,.readingSection>.solarReceipt,.longProfiles>article,.elementFeature>div,.longActions>article,.interactionGrid>article,.palaces>article,.temporalCards>button,.dayActions>article,.cycleList>article,.featuredDays>button,.downloads .shareButton{animation-timeline:view();animation-range:entry 5% cover 24%;animation-delay:0s}}
 
 @media(prefers-reduced-motion:reduce){.homeHero>*,.formIntro>*,.birthForm>*,.readingHero>*,.readingHero>div>*,.introReading>*,.readingRail,.timeHero>*,.cycleSetup>*,.monthHero>*,.calendarBridge>*,.libraryGrid .mapCard,.temporalCards>button,.dayActions>article,.longProfiles>article,.elementFeature>div,.longActions>article,.interactionGrid>article,.palaces>article,.cycleList>article,.featuredDays>button,.downloads .shareButton,.readingSection>.sectionHead,.readingSection>.expertIntro,.readingSection>.shareActions,.readingSection>.elementRow,.readingSection>.voidLong,.readingSection>.solarReceipt{animation:none!important}.mapCard,.temporalCards>button,.dayActions>article,.longProfiles>article,.elementFeature>div,.longActions>article,.interactionGrid>article,.palaces>article,.expertChart article,.shareButton,.primary{transition:none!important}}
+
+/* Stories stay inside one frame; technical pillars use the available width */
+.expertCarousel{position:relative}.expertCarouselArrow{display:none}.expertCore{display:contents}
+
+@media(max-width:700px){
+  .storyShell{height:100svh;min-height:0;grid-template-rows:3px minmax(0,1fr);padding:16px 14px calc(10px + env(safe-area-inset-bottom));overflow:hidden}
+  .story{height:100%;min-height:0;padding:82px 2px 78px;align-items:center;justify-content:center;overflow:hidden}
+  .story>*{width:100%;max-height:100%;min-height:0;overflow:hidden}
+  .storyNav{bottom:calc(8px + env(safe-area-inset-bottom));padding-top:22px}
+  .story .shareActions{display:none}
+  .profilesStory,.elementsStory,.actionsStory,.interactionStory,.finalStory,.pillarStory,.storyCopy,.storyCenter{display:flex;flex-direction:column;justify-content:center}
+  .profilesStory>h2,.elementsStory>h2,.actionsStory>h2,.interactionStory>h2,.storyCopy h2{font-size:clamp(1.9rem,8.2vw,2.55rem);line-height:.94;margin-bottom:12px}
+  .profilesStory>.eyebrow,.elementsStory>.eyebrow,.actionsStory>.eyebrow,.interactionStory>.eyebrow,.storyCopy>.eyebrow{margin-bottom:9px}
+  .profilesGrid{grid-template-columns:1fr 1fr;margin:10px 0;gap:6px}
+  .profilesGrid.profiles-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .miniProfile{padding:7px 4px;border-radius:16px}
+  .miniProfile .glyph{--glyph-size:34px!important}
+  .miniProfile small{margin-top:3px;font-size:.5rem}.miniProfile b{font-size:1.05rem}.miniProfile span{font-size:.56rem}
+  .profilesStory>p:last-of-type,.elementsStory>p,.interactionStory>p,.storyCopy>p:not(.eyebrow),.pillarStory>p{font-size:.82rem;line-height:1.38;margin:6px 0}
+  .storyCenter h1{font-size:clamp(3.5rem,16vw,4.7rem)}.storyCenter h2{font-size:2.3rem;margin:13px 0 10px}.storyCenter>p:not(.eyebrow){font-size:.96rem;line-height:1.4}
+  .pillarHero{margin:9px 0 13px}.pillarHero h2{font-size:2.55rem}.pillarStory h3{font-size:1.65rem;margin-bottom:7px}
+  .elementRow{height:130px;margin:7px 0 10px}.elementsStory .elementRow{flex:0 0 130px}
+  .actionList{gap:2px}.actionList article{padding:8px 0;gap:9px}.actionList b{font-size:1.12rem}.actionList p{font-size:.72rem;line-height:1.28;margin-top:2px}
+  .interactionStory{position:relative;isolation:isolate}.interactionStory .orbit{position:absolute;z-index:-1;right:-24px;top:18%;width:150px;height:150px;margin:0;opacity:.32}.interactionStory .orbit i:nth-child(1){width:140px;height:64px}.interactionStory .orbit i:nth-child(2){width:64px;height:140px}
+  .storyCopy .voidRing{width:105px;height:105px;margin:12px 0}.storyCopy .voidRing:after{inset:25px}
+  .technical{margin-top:9px;font-size:.55rem;line-height:1.25;white-space:normal}
+  .finalCard{padding:10px;margin-bottom:6px}.finalCard>.glyph{--glyph-size:44px!important}.finalCard>small{margin-top:5px}.finalCard>h2{font-size:2.35rem}.finalCard>p{font-size:.78rem;margin:4px auto}.finalProfiles{margin:6px 0}.finalProfiles .miniProfile{padding:3px}.finalCard>span{font-size:.65rem}
+
+  .expertCarousel{margin-inline:-2px}.expertCarouselArrow{position:absolute;z-index:6;top:44%;display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.9);border-radius:50%;background:rgba(248,244,237,.86);box-shadow:0 10px 28px rgba(45,35,28,.16);backdrop-filter:blur(12px);font-size:1.15rem}.expertCarouselPrev{left:-12px}.expertCarouselNext{right:-12px}
+  .expertChart,.expertChart-3,.expertChart-4,.expertChart-5,.expertChart-6{padding-inline:18px;scroll-padding-inline:18px}
+  .expertPillar{flex-basis:min(88vw,365px)}.expertPillar>article{padding:8px}.expertCore{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+  .expertStem,.expertBranch{min-height:154px;padding:10px 5px}.expertStem .glyph{--glyph-size:48px!important}.expertBranch .animalGlyph{--animal-size:54px!important}.expertStem strong,.expertBranch strong{font-size:1.16rem}.expertStem span,.expertBranch span{font-size:.56rem}
+  .hiddenStems{min-height:74px;padding:8px 3px}.hiddenStems>small{font-size:.47rem}.hiddenStems button{padding:5px 7px}.expertChart article>header{min-height:64px}
+  .expertLocked{min-height:360px}
+}
+
+@media(max-width:380px), (max-height:700px){
+  .story{padding-top:76px;padding-bottom:70px}.profilesStory>h2,.elementsStory>h2,.actionsStory>h2,.interactionStory>h2,.storyCopy h2{font-size:1.95rem}.profilesGrid{margin:7px 0}.miniProfile{padding:5px 3px}.profilesStory>p:last-of-type,.elementsStory>p,.interactionStory>p,.storyCopy>p:not(.eyebrow),.pillarStory>p{font-size:.75rem;line-height:1.3}.storyCenter h1{font-size:3.55rem}.elementRow{height:105px}.elementsStory .elementRow{flex-basis:105px}.actionList article{padding:6px 0}.actionList p{font-size:.66rem}.pillarHero .glyph{--glyph-size:62px!important}.pillarStory h3{font-size:1.45rem}.technical{margin-top:6px}.finalProfiles{display:none}
+}
