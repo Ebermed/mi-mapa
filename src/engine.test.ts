@@ -15,6 +15,9 @@ describe('cartas de referencia',()=>{
     expect([c.pillars.month.stem,c.pillars.month.branch]).toEqual(['geng','dragon'])
     expect([c.pillars.day.stem,c.pillars.day.branch]).toEqual(['yi','rabbit'])
     expect([c.pillars.hour.stem,c.pillars.hour.branch]).toEqual(['ding','ox'])
+    const dragonRabbit=c.interactions.filter(item=>item.kind==='tensión'&&item.branches.includes('dragon')&&item.branches.includes('rabbit'))
+    expect(dragonRabbit).toHaveLength(1)
+    expect(dragonRabbit[0].pillars).toEqual(expect.arrayContaining(['year','month','day']))
   })
   it('calcula los vacíos desde el pilar del día',()=>{
     expect(calculateChart(fixtures.eber).voidBranches.length).toBe(2)
