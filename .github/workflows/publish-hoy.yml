@@ -1,0 +1,43 @@
+name: Publicar Hoy en Instagram
+
+on:
+  schedule:
+    - cron: '15 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hoy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install --no-save sharp
+      - run: node scripts/generate-hoy.mjs
+      - run: node -e "import sharp from 'sharp'; await sharp('public/social/hoy.svg').jpeg({quality:92}).toFile('public/social/hoy.jpg')"
+      - name: Guardar publicación del día
+        run: |
+          git config user.name "mi-mapa-bot"
+          git config user.email "actions@github.com"
+          git add public/social/hoy.svg public/social/hoy.jpg public/social/hoy-caption.txt
+          git commit -m "content: hoy"
+          git push
+      - name: Publicar en Instagram
+        if: ${{ secrets.IG_USER_ID != '' && secrets.IG_ACCESS_TOKEN != '' }}
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          CAPTION="$(cat public/social/hoy-caption.txt)"
+          IMAGE_URL="https://raw.githubusercontent.com/Ebermed/mi-mapa/main/public/social/hoy.jpg"
+          CREATION_ID="$(curl -s -X POST "https://graph.facebook.com/v22.0/$IG_USER_ID/media" -F "image_url=$IMAGE_URL" -F "caption=$CAPTION" -F "access_token=$IG_ACCESS_TOKEN" | jq -r .id)"
+          curl -s -X POST "https://graph.facebook.com/v22.0/$IG_USER_ID/media_publish" -F "creation_id=$CREATION_ID" -F "access_token=$IG_ACCESS_TOKEN"
