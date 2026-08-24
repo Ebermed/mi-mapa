@@ -1,0 +1,133 @@
+name: Fábrica de publicaciones MI MAPA
+
+on:
+  schedule:
+    - cron: '15 14 * * *'
+    - cron: '00 19 * * 1'
+    - cron: '00 19 * * 2'
+    - cron: '00 00 * * 4'
+    - cron: '00 00 * * 6'
+  workflow_dispatch:
+    inputs:
+      format:
+        description: Serie que quieres publicar
+        required: true
+        type: choice
+        options: [hoy, centro, animal, semana-a, semana-b]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fabrica-social
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Revisar conexión con Instagram
+        id: connection
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$IG_USER_ID" ] && [ -n "$IG_ACCESS_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Conexión disponible."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "La fábrica está en pausa hasta guardar IG_USER_ID e IG_ACCESS_TOKEN."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.connection.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.connection.outputs.ready == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: steps.connection.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Preparar generador
+        if: steps.connection.outputs.ready == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          npm install --no-save sharp
+      - name: Elegir serie
+        if: steps.connection.outputs.ready == 'true'
+        id: format
+        env:
+          MANUAL_FORMAT: ${{ inputs.format }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          FORMAT="$MANUAL_FORMAT"
+          if [ -z "$FORMAT" ]; then
+            case "$SCHEDULE" in
+              '15 14 * * *') FORMAT='hoy' ;;
+              '00 19 * * 1') FORMAT='semana-a' ;;
+              '00 19 * * 2') FORMAT='semana-b' ;;
+              '00 00 * * 4') FORMAT='centro' ;;
+              '00 00 * * 6') FORMAT='animal' ;;
+            esac
+          fi
+          echo "value=$FORMAT" >> "$GITHUB_OUTPUT"
+      - name: Generar imágenes
+        if: steps.connection.outputs.ready == 'true'
+        env:
+          FORMAT: ${{ steps.format.outputs.value }}
+        run: |
+          node scripts/generate-social.mjs "$FORMAT"
+          node --input-type=module <<'NODE'
+          import sharp from 'sharp'
+          import { readdir } from 'node:fs/promises'
+          const dir='public/social/generated'
+          for(const file of await readdir(dir)){
+            if(!file.endsWith('.svg'))continue
+            await sharp(`${dir}/${file}`).jpeg({quality:92,chromaSubsampling:'4:4:4'}).toFile(`${dir}/${file.replace('.svg','.jpg')}`)
+          }
+          NODE
+      - name: Guardar recursos públicos
+        if: steps.connection.outputs.ready == 'true'
+        run: |
+          git config user.name "mi-mapa-bot"
+          git config user.email "actions@github.com"
+          git add public/social/generated
+          if git diff --cached --quiet; then
+            echo "La pieza de hoy ya estaba generada."
+          else
+            git commit -m "content: ${{ steps.format.outputs.value }} $(date -u +%F)"
+          fi
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Dar tiempo al recurso público
+        if: steps.connection.outputs.ready == 'true'
+        run: sleep 12
+      - name: Publicar en Instagram
+        if: steps.connection.outputs.ready == 'true'
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v23.0' }}
+        run: |
+          META='public/social/generated/post.json'
+          CAPTION="$(jq -r .caption "$META")"
+          COUNT="$(jq '.items | length' "$META")"
+          BASE="https://raw.githubusercontent.com/Ebermed/mi-mapa/$sha/public/social/generated"
+          if [ "$COUNT" -eq 1 ]; then
+            FILE="$(jq -r '.items[0]' "$META")"
+            RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+            CREATION_ID="$(jq -r .id <<< "$RESPONSE")"
+          else
+            CHILDREN=''
+            while IFS= read -r FILE; do
+              RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "is_carousel_item=true" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+              ID="$(jq -r .id <<< "$RESPONSE")"
+              CHILDREN="${CHILDREN:+$CHILDREN,}$ID"
+            done < <(jq -r '.items[]' "$META")
+            RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "media_type=CAROUSEL" --data-urlencode "children=$CHILDREN" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+            CREATION_ID="$(jq -r .id <<< "$RESPONSE")"
+          fi
+          curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
