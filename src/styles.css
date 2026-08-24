@@ -211,3 +211,21 @@ html,body,#root,.app{max-inline-size:100%;overflow-x:clip}.formPage,.formIntro,.
   from{opacity:0;transform:translateY(-8px) scale(.97)}
   to{opacity:1;transform:none}
 }
+
+
+/* Story copy keeps complete sentences inside the mobile frame. */
+@media(max-width:700px){
+  .story>*{max-height:none;overflow:visible}
+  .storyCopy{max-width:100%;padding-inline:0}
+  .storyCopy h2{text-wrap:balance;overflow-wrap:anywhere}
+  .storyCopyLong h2{font-size:clamp(1.7rem,7.3vw,2.25rem);line-height:.98}
+  .storyBodyLong>p:not(.eyebrow){font-size:.9rem;line-height:1.4}
+  .storyCopyLong .voidRing{width:92px;height:92px;margin:10px 0}
+  .storyCopyLong .voidRing:after{inset:22px}
+}
+@media(max-width:380px),(max-height:700px){
+  .storyCopyLong h2{font-size:1.65rem}
+  .storyBodyLong>p:not(.eyebrow){font-size:.78rem;line-height:1.32}
+  .storyCopyLong .voidRing{width:76px;height:76px;margin:7px 0}
+  .storyCopyLong .voidRing:after{inset:18px}
+}
