@@ -13,13 +13,15 @@ export type BirthInput = {
   time: string
   timezone: string
   place?: string
+  longitude?: number
+  /** Conservado sólo para poder abrir enlaces viejos. Las cartas nuevas usan zona histórica + longitud. */
   dstAdjustment?: boolean
 }
 
 export type Pillar = { stem: StemKey; branch: BranchKey; hidden: StemKey[] }
 export type Interaction = { id: string; kind: string; branches: BranchKey[]; pillars: PillarKey[]; note: string }
 export type Chart = {
-  birth: BirthInput & { calculationTime: string }
+  birth: BirthInput & { calculationDate: string; calculationTime: string; solarCorrectionMinutes: number; zoneOffset: number }
   pillars: Record<PillarKey, Pillar>
   dayMaster: { stem: StemKey; element: ElementKey; polarity: Polarity; strength: string }
   elements: Record<ElementKey, number>
@@ -81,7 +83,7 @@ export const pillarMeta: Record<PillarKey,{ title:string; eyebrow:string; intro:
   year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Cuenta el clima de origen: lo aprendido temprano y la forma en que te lee el mundo al conocerte.'},
 }
 
-const branchPace: Record<BranchKey,string> = {
+export const branchPace: Record<BranchKey,string> = {
   rat:'Primero observas por dónde se mueve la situación y luego encuentras una entrada.', ox:'Prefieres avanzar paso a paso y confiar en lo que ya demostró que funciona.',
   tiger:'Te activa abrir camino y probar con movimiento, incluso antes de tener todo resuelto.', rabbit:'Lees el ambiente y ajustas el tono para que las cosas puedan seguir sin romperse.',
   dragon:'Tiendes a juntar varias piezas, proteger tu espacio y reorganizar hasta que algo tenga estructura.', snake:'Miras con atención antes de moverte; cuando ves el momento, puedes actuar con mucha precisión.',
@@ -109,6 +111,49 @@ function shiftHour(time:string,delta:number){
   return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`
 }
 
+function zoneParts(timestamp:number,timezone:string){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(timestamp))
+  return Object.fromEntries(parts.filter(part=>part.type!=='literal').map(part=>[part.type,Number(part.value)])) as Record<'year'|'month'|'day'|'hour'|'minute'|'second',number>
+}
+
+function zoneOffsetAt(timestamp:number,timezone:string){
+  const p=zoneParts(timestamp,timezone)
+  return (Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-timestamp)/3_600_000
+}
+
+function utcFromLocal(date:string,time:string,timezone:string){
+  const [year,month,day]=date.split('-').map(Number),[hour,minute]=time.split(':').map(Number)
+  const localClock=Date.UTC(year,month-1,day,hour,minute,0)
+  let timestamp=localClock
+  for(let i=0;i<4;i++) timestamp=localClock-zoneOffsetAt(timestamp,timezone)*3_600_000
+  return timestamp
+}
+
+function solarMoment(input:BirthInput){
+  const [year,month,day]=input.date.split('-').map(Number),[hour,minute]=input.time.split(':').map(Number)
+  if(!Number.isFinite(input.longitude)){
+    return {date:input.date,time:input.dstAdjustment?shiftHour(input.time,-1):input.time,correction:input.dstAdjustment?-60:0,offset:zoneOffsetAt(utcFromLocal(input.date,input.time,input.timezone),input.timezone)}
+  }
+  const timestamp=utcFromLocal(input.date,input.time,input.timezone)
+  const offset=zoneOffsetAt(timestamp,input.timezone)
+  const julian=timestamp/86_400_000+2440587.5
+  const radians=Math.PI/180
+  const n=julian-2451545
+  const g=(357.528+0.9856003*n)*radians
+  const lambda=(280.46+0.9856474*n)*radians
+  const equation=-7.655*Math.sin(g)+9.873*Math.sin(2*lambda+3.588)
+  const longitudeCorrection=(input.longitude!-offset*15)*4
+  const correction=longitudeCorrection+equation
+  const adjusted=new Date(Date.UTC(year,month-1,day,hour,minute)+correction*60_000)
+  const pad=(value:number)=>String(value).padStart(2,'0')
+  return {
+    date:`${adjusted.getUTCFullYear()}-${pad(adjusted.getUTCMonth()+1)}-${pad(adjusted.getUTCDate())}`,
+    time:`${pad(adjusted.getUTCHours())}:${pad(adjusted.getUTCMinutes())}`,
+    correction,
+    offset,
+  }
+}
+
 function libraryPillars(date:string,time:string):Record<PillarKey,Pillar>{
   const [y,m,d]=date.split('-').map(Number),[hh,mm]=time.split(':').map(Number)
   const ec=Solar.fromYmdHms(y,m,d,hh,mm,0).getLunar().getEightChar()
@@ -126,8 +171,8 @@ const fixtureDefs = {
 } as const
 
 export const fixtures:Record<'eber'|'anju',BirthInput>={
-  eber:{name:'Eber',date:'1996-07-20',time:'11:45',timezone:'America/Mexico_City',place:'León, Guanajuato',dstAdjustment:true},
-  anju:{name:'Anju',date:'2000-04-27',time:'02:00',timezone:'America/Mexico_City',place:'México',dstAdjustment:false},
+  eber:{name:'Eber',date:'1996-07-20',time:'11:45',timezone:'America/Mexico_City',place:'León, Guanajuato, México',longitude:-101.68},
+  anju:{name:'Anju',date:'2000-04-27',time:'02:00',timezone:'America/Mexico_City',place:'Ciudad de México, México',longitude:-99.13},
 }
 
 function detectInteractions(p:Record<PillarKey,Pillar>):Interaction[]{
@@ -156,9 +201,9 @@ function voidFor(day:Pillar){
 
 export function calculateChart(input:BirthInput):Chart{
   const fixture=input.date===fixtureDefs.eber.date&&input.time===fixtureDefs.eber.time?'eber':input.date===fixtureDefs.anju.date&&input.time===fixtureDefs.anju.time?'anju':null
-  const calculationTime=input.dstAdjustment?shiftHour(input.time,-1):input.time
-  let pillars:Record<PillarKey,Pillar>|null=null, note='Cálculo local con calendario solar chino.'
-  try{pillars=libraryPillars(input.date,calculationTime)}catch{note='No se pudo leer el calendario local.'}
+  const solar=solarMoment(input)
+  let pillars:Record<PillarKey,Pillar>|null=null, note='Zona horaria histórica y hora solar calculadas en este dispositivo.'
+  try{pillars=libraryPillars(solar.date,solar.time)}catch{note='No se pudo leer el calendario local.'}
   let status:Chart['calculation']['status']='library_unverified',strength='Por observar'
   if(fixture){
     const def=fixtureDefs[fixture]
@@ -179,7 +224,7 @@ export function calculateChart(input:BirthInput):Chart{
     p.hidden.forEach(hidden=>{elements[stems[hidden].element]+=1;tenGods[tenGod(day,hidden)]+=1})
   }
   const voidBranches=voidFor(pillars.day),voidPillars=(Object.entries(pillars) as [PillarKey,Pillar][]).filter(([,p])=>voidBranches.includes(p.branch)).map(([key])=>key)
-  return {birth:{...input,calculationTime},pillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(pillars),voidBranches,voidPillars,calculation:{status,note}}
+  return {birth:{...input,calculationDate:solar.date,calculationTime:solar.time,solarCorrectionMinutes:solar.correction,zoneOffset:solar.offset},pillars,dayMaster:{stem:day,element:stems[day].element,polarity:stems[day].polarity,strength},elements,tenGods,interactions:detectInteractions(pillars),voidBranches,voidPillars,calculation:{status,note}}
 }
 
 export function pillarReading(key:PillarKey,pillar:Pillar){
@@ -210,3 +255,4 @@ export function profileSummary(chart:Chart){
   const identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0]
   return `${identity.headline} ${elementMeta[strong].article.charAt(0).toUpperCase()+elementMeta[strong].article.slice(1)} es tu recurso más disponible; ${elementMeta[low].article} te pide más intención.`
 }
+

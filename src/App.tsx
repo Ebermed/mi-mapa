@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import {
-  branches, calculateChart, elementMeta, fixtures, identityMeta, interactionReading,
+  branches, branchPace, calculateChart, elementMeta, identityMeta, interactionReading,
   lowestElement, pillarLabel, pillarMeta, pillarReading, profileSummary, strongestElement,
   stems, voidReading,
   type BirthInput, type Chart, type ElementKey, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
+import { locationLabel, searchLocations, type BirthLocation } from './locations'
 
 type View = 'home'|'form'|'stories'|'reading'
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
@@ -127,20 +128,35 @@ function Home({library,onOpen,onNew,onDelete}:{library:SavedMap[];onOpen:(x:Save
 }
 
 function BirthForm({onSubmit,onBack}:{onSubmit:(x:BirthInput)=>void;onBack?:()=>void}){
-  const [name,setName]=useState(''),[date,setDate]=useState(''),[time,setTime]=useState(''),[place,setPlace]=useState(''),[dst,setDst]=useState(false),[error,setError]=useState('')
-  const submit=(event:FormEvent)=>{event.preventDefault();if(!date||!time||!place.trim()){setError('Completa fecha, hora y lugar para calcular tu carta.');return}setError('');onSubmit({name:name.trim(),date,time,place:place.trim(),timezone:'America/Mexico_City',dstAdjustment:dst})}
+  const [name,setName]=useState(''),[date,setDate]=useState(''),[time,setTime]=useState(''),[place,setPlace]=useState(''),[selected,setSelected]=useState<BirthLocation|null>(null),[open,setOpen]=useState(false),[highlighted,setHighlighted]=useState(0),[error,setError]=useState('')
+  const suggestions=useMemo(()=>searchLocations(place,7),[place])
+  const choose=(location:BirthLocation)=>{setSelected(location);setPlace(locationLabel(location));setOpen(false);setHighlighted(0)}
+  const submit=(event:FormEvent)=>{
+    event.preventDefault()
+    const location=selected||suggestions[0]
+    if(!date||!time||!place.trim()){setError('Completa fecha, hora y lugar para calcular tu carta.');return}
+    if(!location){setError('Elige una ciudad de la lista para poder ajustar la hora solar automáticamente.');setOpen(true);return}
+    setError('');onSubmit({name:name.trim(),date,time,place:locationLabel(location),timezone:location.timezone,longitude:location.longitude})
+  }
   return <main className="shell formPage">
     <header className="topbar">{onBack?<button className="back" onClick={onBack}>← Tus cartas</button>:<Brand/>}<span className="stepLabel">PRIMER PASO</span></header>
     <section className="formIntro"><p className="eyebrow">TU MOMENTO DE NACER</p><h1>Empecemos<br/><em>por ti.</em></h1><p>Con estos datos ubicamos los cuatro ritmos que estaban activos cuando naciste. Todo se calcula aquí, sin enviar tu información a ningún servidor.</p></section>
     <form className="birthForm" onSubmit={submit}>
       <label>¿Cómo te llamas? <span>Opcional</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre o apodo" autoComplete="name"/></label>
       <div className="fieldRow"><label>Fecha de nacimiento<input type="date" value={date} onChange={e=>setDate(e.target.value)} min="1900-01-01" max="2050-12-31" required/></label><label>Hora de nacimiento<input type="time" value={time} onChange={e=>setTime(e.target.value)} required/></label></div>
-      <label>Lugar de nacimiento<input value={place} onChange={e=>setPlace(e.target.value)} placeholder="Ciudad, estado y país" required/></label>
-      <label className="check"><input type="checkbox" checked={dst} onChange={e=>setDst(e.target.checked)}/><span><b>Había horario de verano</b><small>Actívalo si el reloj se adelantaba una hora en tu fecha y ciudad.</small></span></label>
+      <label className="locationField">Lugar de nacimiento
+        <input role="combobox" aria-expanded={open&&suggestions.length>0} aria-controls="location-options" aria-autocomplete="list" value={place} onChange={e=>{setPlace(e.target.value);setSelected(null);setOpen(true);setHighlighted(0)}} onFocus={()=>setOpen(true)} onBlur={()=>setTimeout(()=>setOpen(false),150)} onKeyDown={event=>{
+          if(event.key==='ArrowDown'){event.preventDefault();setOpen(true);setHighlighted(value=>Math.min(suggestions.length-1,value+1))}
+          if(event.key==='ArrowUp'){event.preventDefault();setHighlighted(value=>Math.max(0,value-1))}
+          if(event.key==='Enter'&&open&&suggestions[highlighted]){event.preventDefault();choose(suggestions[highlighted])}
+          if(event.key==='Escape')setOpen(false)
+        }} placeholder="Empieza a escribir tu ciudad" autoComplete="off" required/>
+        {open&&place.trim().length>1&&<ul className="locationOptions" id="location-options" role="listbox">{suggestions.length?suggestions.map((location,index)=><li key={`${location.city}-${location.timezone}`}><button type="button" role="option" aria-selected={index===highlighted} className={index===highlighted?'active':''} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(location)}><b>{location.city}</b><span>{location.country}</span></button></li>):<li className="noLocation">No encontramos esa ciudad. Prueba con la ciudad grande más cercana.</li>}</ul>}
+        {selected&&<small className="solarHint">Listo: calcularemos automáticamente su horario histórico y la hora solar real.</small>}
+      </label>
       {error&&<p className="formError" role="alert">{error}</p>}
       <button className="primary wide" type="submit">Descubrir mi mapa <span>→</span></button>
     </form>
-    <details className="examples"><summary>Usar una carta de ejemplo</summary><div><button onClick={()=>onSubmit(fixtures.eber)}>Probar Eber</button><button onClick={()=>onSubmit(fixtures.anju)}>Probar Anju</button></div></details>
   </main>
 }
 
@@ -186,11 +202,11 @@ function PillarStory({pillarKey,chart,title,body}:{pillarKey:PillarKey;chart:Cha
 function MiniProfile({pillarKey,chart}:{pillarKey:PillarKey;chart:Chart}){const p=chart.pillars[pillarKey],i=identityMeta[p.stem];return <div className="miniProfile"><Glyph stem={p.stem} size={40}/><small>{pillarMeta[pillarKey].eyebrow}</small><b>{i.name}</b><span>{branches[p.branch].label}</span></div>}
 function ProfilesStory({chart}:{chart:Chart}){return <div className="profilesStory"><p className="eyebrow">TUS CUATRO PERFILES</p><h2>Distintos espacios.<br/>La misma persona.</h2><div className="profilesGrid">{PILLAR_ORDER.map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><p>{profileSummary(chart)}</p><ShareButton kind="profiles" chart={chart}>Compartir mis perfiles</ShareButton></div>}
 function ElementRow({chart}:{chart:Chart}){const max=Math.max(...Object.values(chart.elements));return <div className="elementRow">{ELEMENT_ORDER.map(element=><div key={element}><ElementMark element={element}/><i style={{height:`${28+chart.elements[element]/max*72}px`}}/><small>{elementMeta[element].label}</small></div>)}</div>}
-function ElementStory({element,label,count,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Es una respuesta a la que vuelves con facilidad.`:`${meta.sentence} No está ausente: simplemente funciona mejor cuando la eliges de forma consciente.`}</p><Technical>{count} puntos relativos en tu carta</Technical></StoryCenter>}
+function ElementStory({element,label,strongest=false}:{element:ElementKey;label:string;count:number;strongest?:boolean}){const meta=elementMeta[element];return <StoryCenter kicker={label}><ElementMark element={element}/><h1>{meta.label}</h1><p>{strongest?`${meta.sentence} Es una respuesta a la que vuelves con facilidad.`:`${meta.sentence} No está ausente: simplemente funciona mejor cuando la eliges de forma consciente.`}</p><Technical>{strongest?'Es el recurso que más se repite':'Es el recurso que menos se repite'}</Technical></StoryCenter>}
 function ElementsStory({chart}:{chart:Chart}){return <div className="elementsStory"><p className="eyebrow">TU MEZCLA, DE UN VISTAZO</p><h2>No necesitas equilibrio perfecto.<br/>Necesitas conocer tu mezcla.</h2><ElementRow chart={chart}/><p>Lo alto es acceso fácil. Lo bajo es práctica consciente. Ningún elemento es premio ni castigo.</p><ShareButton kind="elements" chart={chart}>Compartir mi gráfica</ShareButton></div>}
 
 function topActions(chart:Chart){return (Object.entries(chart.tenGods) as [TenGodKey,number][]).sort((a,b)=>b[1]-a[1]).slice(0,3)}
-function ActionsStory({chart}:{chart:Chart}){return <div className="actionsStory"><p className="eyebrow">TUS FORMAS DE ACTUAR</p><h2>Cuando algo importa,<br/>estas respuestas aparecen primero.</h2><div className="actionList">{topActions(chart).map(([key,value],i)=><article key={key}><span>0{i+1}</span><div><b>{actionMeta[key].name}</b><p>{actionMeta[key].copy}</p></div><em>{value}</em></article>)}</div><ShareButton kind="actions" chart={chart}>Compartir mis formas de actuar</ShareButton></div>}
+function ActionsStory({chart}:{chart:Chart}){const labels=['Tu respuesta más automática','También muy disponible','Otro recurso cercano'];return <div className="actionsStory"><p className="eyebrow">TUS FORMAS DE ACTUAR</p><h2>Cuando algo importa,<br/>estas respuestas aparecen primero.</h2><div className="actionList">{topActions(chart).map(([key],i)=><article key={key}><span aria-hidden="true">→</span><div><small>{labels[i]}</small><b>{actionMeta[key].name}</b><p>{actionMeta[key].copy}</p></div></article>)}</div><ShareButton kind="actions" chart={chart}>Compartir mis formas de actuar</ShareButton></div>}
 function InteractionsStory({chart}:{chart:Chart}){const data=chart.interactions[0]?interactionReading(chart.interactions[0]):{title:'Tus cuatro ritmos no compiten por el volante',body:'No aparece una interacción principal entre tus cuatro ramas. Eso no significa una vida sin fricción; significa que ningún choque o armonía domina esta primera lectura.'};return <div className="interactionStory"><p className="eyebrow">LO QUE PASA CUANDO TUS PARTES SE ENCUENTRAN</p><div className="orbit" aria-hidden="true"><i/><i/><span>十</span></div><h2>{data.title}</h2><p>{data.body}</p>{chart.interactions[0]&&<Technical>{chart.interactions[0].kind} · {chart.interactions[0].note}</Technical>}</div>}
 function FinalStory({chart}:{chart:Chart}){const identity=identityMeta[chart.dayMaster.stem],voidCopy=voidReading(chart);return <div className="finalStory"><p className="eyebrow">ESTE ERES TÚ</p><div className="finalCard"><Glyph stem={chart.dayMaster.stem} size={74}/><small>TU MAPA EN UNA IMAGEN</small><h2>{identity.name}</h2><p>{identity.headline}</p><div className="finalProfiles">{PILLAR_ORDER.map(key=><MiniProfile key={key} pillarKey={key} chart={chart}/>)}</div><span>{voidCopy.title}</span></div><ShareButton kind="summary" chart={chart}>Descargar y compartir</ShareButton></div>}
 
@@ -223,7 +239,7 @@ async function shareImage(chart:Chart,kind:ShareKind){
     ELEMENT_ORDER.forEach((element,index)=>{const x=165+index*188,h=chart.elements[element]/max*340;ctx.fillStyle=elementMeta[element].color;roundRect(ctx,x-38,baseY+350-h,76,h,38);ctx.fill();ctx.fillStyle=meta.dark;ctx.font='700 17px Arial';ctx.fillText(elementMeta[element].label.toUpperCase(),x,baseY+395)})
   }
   if(kind==='actions'){
-    topActions(chart).forEach(([key,value],index)=>{const y=425+index*225;ctx.fillStyle='rgba(255,255,255,.68)';roundRect(ctx,125,y,830,180,30);ctx.fill();ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(190,y+90,38,0,Math.PI*2);ctx.fill();ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font='700 33px Georgia';ctx.fillText(actionMeta[key].name,255,y+65);ctx.font='23px Arial';wrapCanvasText(ctx,actionMeta[key].copy,255,y+105,630,31);ctx.textAlign='center';ctx.font='700 18px Arial';ctx.fillText(String(value),190,y+97)})
+    topActions(chart).forEach(([key],index)=>{const y=425+index*225;ctx.fillStyle='rgba(255,255,255,.68)';roundRect(ctx,125,y,830,180,30);ctx.fill();ctx.fillStyle=meta.color;ctx.beginPath();ctx.arc(190,y+90,38,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 25px Arial';ctx.fillText('→',190,y+98);ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font='700 33px Georgia';ctx.fillText(actionMeta[key].name,255,y+65);ctx.font='23px Arial';wrapCanvasText(ctx,actionMeta[key].copy,255,y+105,630,31);ctx.textAlign='center'})
   }
   ctx.fillStyle=meta.dark;ctx.font='italic 600 27px Georgia';ctx.fillText('No es una sentencia. Es una forma de observarte.',540,1210)
   const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(x=>x?resolve(x):reject(new Error('No se pudo crear la imagen')),'image/png'))
@@ -240,16 +256,54 @@ function Reading({chart,onHome,onReplay}:{chart:Chart;onHome:()=>void;onReplay:(
   return <main className="reading">
     <header className="readingTop"><button onClick={onHome}>← Tus cartas</button><Brand/><button onClick={onReplay}>Ver historias</button></header>
     <section className="readingHero"><div><p className="eyebrow">ESTE ERES TÚ</p><h1>{identity.name}</h1><p>{identity.headline}</p><Technical>{stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</Technical></div><Glyph stem={chart.dayMaster.stem} size={160}/></section>
-    <nav className="sectionNav" aria-label="Secciones de tu lectura"><a href="#perfiles">Perfiles</a><a href="#elementos">Elementos</a><a href="#acciones">Cómo actúas</a><a href="#encuentros">Encuentros</a><a href="#vacio">Vacío</a></nav>
     <section className="readingSection introReading"><p>{identity.body}</p><p>{identity.friction}</p></section>
-    <section className="readingSection" id="perfiles"><SectionHead number="01" kicker="TUS CUATRO PERFILES" title="Quién eres cambia de matiz según el espacio."/><div className="longProfiles">{PILLAR_ORDER.map(key=>{const p=chart.pillars[key],r=pillarReading(key,p);return <article key={key}><div><Glyph stem={p.stem} size={58}/><span><small>{pillarMeta[key].eyebrow}</small><h3>{identityMeta[p.stem].name}</h3><em>{pillarMeta[key].title}</em></span></div><p>{r.body}</p><Technical>{pillarLabel(p)}</Technical></article>})}</div><ShareButton kind="profiles" chart={chart}>Descargar mis perfiles</ShareButton></section>
-    <section className="readingSection" id="elementos"><SectionHead number="02" kicker="TU MEZCLA" title="Cinco maneras de responder a la vida."/><div className="elementFeature"><div><small>MÁS DISPONIBLE</small><ElementMark element={strong}/><h3>{elementMeta[strong].label}</h3><p>{elementMeta[strong].sentence}</p></div><div><small>PIDE MÁS INTENCIÓN</small><ElementMark element={low}/><h3>{elementMeta[low].label}</h3><p>{elementMeta[low].sentence}</p></div></div><ElementRow chart={chart}/><ShareButton kind="elements" chart={chart}>Descargar mi gráfica</ShareButton></section>
-    <section className="readingSection" id="acciones"><SectionHead number="03" kicker="CÓMO ACTÚAS" title="Tus respuestas más accesibles."/><div className="longActions">{topActions(chart).map(([key,value])=><article key={key}><span>{value}</span><div><h3>{actionMeta[key].name}</h3><p>{actionMeta[key].copy}</p></div></article>)}</div></section>
-    <section className="readingSection" id="encuentros"><SectionHead number="04" kicker="CHOQUES Y ARMONÍAS" title="Lo que pasa cuando tus partes se encuentran."/><div className="interactionGrid">{chart.interactions.length?chart.interactions.map(item=>{const r=interactionReading(item);return <article key={item.id}><small>{item.kind}</small><h3>{r.title}</h3><p>{r.body}</p><Technical>{item.note}</Technical></article>}):<article><h3>No hay una interacción dominante.</h3><p>Tus cuatro ramas no forman un choque o armonía principal dentro de esta primera capa. Las etapas y fechas futuras sí pueden activar relaciones nuevas.</p></article>}</div></section>
-    <section className="readingSection" id="vacio"><SectionHead number="05" kicker="TU VACÍO" title={voidCopy.title}/><div className="voidLong"><span className="voidRing"/><p>{voidCopy.body}</p></div></section>
-    <section className="readingSection" id="palacios"><SectionHead number="06" kicker="TUS PALACIOS" title="Cuatro áreas donde se expresa tu carta."/><div className="palaces">{PILLAR_ORDER.map(key=><article key={key}><small>{pillarMeta[key].eyebrow}</small><h3>{pillarMeta[key].title}</h3><p>{pillarMeta[key].intro}</p></article>)}</div></section>
-    <section className="readingSection downloads"><SectionHead number="07" kicker="PARA GUARDAR" title="Tu mapa también cabe en una imagen."/><div><ShareButton kind="summary" chart={chart}>Resumen completo</ShareButton><ShareButton kind="profiles" chart={chart}>Cuatro perfiles</ShareButton><ShareButton kind="elements" chart={chart}>Gráfica de elementos</ShareButton></div></section>
+    <div className="readingBody">
+      <aside className="readingRail"><p>EXPLORA TU MAPA</p><nav aria-label="Secciones de tu lectura">
+        <a href="#perfiles"><i/>Tus cuatro perfiles<small>Cómo cambias según el espacio</small></a>
+        <a href="#elementos"><i/>Tus elementos<small>Recursos fáciles y conscientes</small></a>
+        <a href="#acciones"><i/>Cómo actúas<small>Lo que aparece primero</small></a>
+        <a href="#encuentros"><i/>Encuentros<small>Choques y armonías internas</small></a>
+        <a href="#vacio"><i/>Tu vacío<small>Lo que construyes a tu manera</small></a>
+        <a href="#carta-completa"><i/>Carta completa<small>La estructura para ojos expertos</small></a>
+      </nav></aside>
+      <div className="readingContent">
+        <section className="readingSection" id="perfiles"><SectionHead kicker="TUS CUATRO PERFILES" title="Quién eres cambia de matiz según el espacio."/><div className="longProfiles">{PILLAR_ORDER.map(key=>{const p=chart.pillars[key],r=pillarReading(key,p);return <article key={key}><div><Glyph stem={p.stem} size={58}/><span><small>{pillarMeta[key].eyebrow}</small><h3>{identityMeta[p.stem].name}</h3><em>{pillarMeta[key].title}</em></span></div><p>{r.body}</p><Technical>{pillarLabel(p)}</Technical></article>})}</div><ShareButton kind="profiles" chart={chart}>Descargar mis perfiles</ShareButton></section>
+        <section className="readingSection" id="elementos"><SectionHead kicker="TU MEZCLA" title="Cinco maneras de responder a la vida."/><div className="elementFeature"><div><small>MÁS DISPONIBLE</small><ElementMark element={strong}/><h3>{elementMeta[strong].label}</h3><p>{elementMeta[strong].sentence}</p></div><div><small>PIDE MÁS INTENCIÓN</small><ElementMark element={low}/><h3>{elementMeta[low].label}</h3><p>{elementMeta[low].sentence}</p></div></div><ElementRow chart={chart}/><ShareButton kind="elements" chart={chart}>Descargar mi gráfica</ShareButton></section>
+        <section className="readingSection" id="acciones"><SectionHead kicker="CÓMO ACTÚAS" title="Las respuestas que tienes más a la mano."/><div className="longActions">{topActions(chart).map(([key],index)=><article key={key}><span aria-hidden="true">→</span><div><small>{index===0?'APARECE PRIMERO':index===1?'TAMBIÉN MUY DISPONIBLE':'OTRO RECURSO CERCANO'}</small><h3>{actionMeta[key].name}</h3><p>{actionMeta[key].copy}</p></div></article>)}</div></section>
+        <section className="readingSection" id="encuentros"><SectionHead kicker="CHOQUES Y ARMONÍAS" title="Lo que pasa cuando tus partes se encuentran."/><div className="interactionGrid">{chart.interactions.length?chart.interactions.map(item=>{const r=interactionReading(item);return <article key={item.id}><small>{item.kind}</small><h3>{r.title}</h3><p>{r.body}</p><Technical>{item.note}</Technical></article>}):<article><h3>No hay una interacción dominante.</h3><p>Tus cuatro ramas no forman un choque o armonía principal dentro de esta primera capa. Las etapas y fechas futuras sí pueden activar relaciones nuevas.</p></article>}</div></section>
+        <section className="readingSection" id="vacio"><SectionHead kicker="TU VACÍO" title={voidCopy.title}/><div className="voidLong"><span className="voidRing"/><p>{voidCopy.body}</p></div></section>
+        <section className="readingSection" id="palacios"><SectionHead kicker="TUS PALACIOS" title="Cuatro áreas donde se expresa tu carta."/><div className="palaces">{PILLAR_ORDER.map(key=><article key={key}><small>{pillarMeta[key].eyebrow}</small><h3>{pillarMeta[key].title}</h3><p>{pillarMeta[key].intro}</p></article>)}</div></section>
+        <ExpertChart chart={chart}/>
+        <section className="readingSection downloads"><SectionHead kicker="PARA GUARDAR" title="Tu mapa también cabe en una imagen."/><div><ShareButton kind="summary" chart={chart}>Resumen completo</ShareButton><ShareButton kind="profiles" chart={chart}>Cuatro perfiles</ShareButton><ShareButton kind="elements" chart={chart}>Gráfica de elementos</ShareButton></div></section>
+      </div>
+    </div>
     <footer><Brand/><p>BaZi por dentro. Palabras de todos los días por fuera.</p><button onClick={onHome}>Volver a mis cartas</button></footer>
   </main>
 }
-function SectionHead({number,kicker,title}:{number:string;kicker:string;title:string}){return <header className="sectionHead"><span>{number}</span><div><p className="eyebrow">{kicker}</p><h2>{title}</h2></div></header>}
+function ExpertChart({chart}:{chart:Chart}){
+  const order:PillarKey[]=['year','month','day','hour']
+  const [pick,setPick]=useState<{pillar:PillarKey;kind:'stem'|'branch'|'hidden';stem?:StemKey}>({pillar:'day',kind:'stem'})
+  const pillar=chart.pillars[pick.pillar]
+  const selectedStem=pick.kind==='hidden'?pick.stem!:pillar.stem
+  const detail=pick.kind==='branch'
+    ?{title:`${branches[pillar.branch].label}: tu ritmo de fondo`,body:branchPace[pillar.branch],technical:`Rama terrestre ${branches[pillar.branch].han} · ${elementMeta[branches[pillar.branch].element].label}`}
+    :pick.kind==='hidden'
+      ?{title:`${identityMeta[selectedStem].name} trabaja desde el fondo`,body:`Esta parte no siempre se ve al conocerte. Aparece como un recurso interno: ${identityMeta[selectedStem].body.charAt(0).toLowerCase()+identityMeta[selectedStem].body.slice(1)}`,technical:`Tallo oculto ${stems[selectedStem].han} · ${stems[selectedStem].label}`}
+      :{title:identityMeta[selectedStem].headline,body:identityMeta[selectedStem].body,technical:`Tallo celestial ${stems[selectedStem].han} · ${stems[selectedStem].label}`}
+  const correction=Math.round(chart.birth.solarCorrectionMinutes)
+  return <section className="readingSection expertSection" id="carta-completa">
+    <SectionHead kicker="TU CARTA COMPLETA" title="La estructura técnica, traducida para que sí se pueda leer."/>
+    <p className="expertIntro">Esta es la carta que vería una persona experta. Toca cualquier símbolo para entender qué representa sin tener que aprenderte primero toda la nomenclatura.</p>
+    <div className="solarReceipt"><span>HORA QUE ESCRIBISTE<b>{chart.birth.time}</b></span><i>→</i><span>HORA SOLAR USADA<b>{chart.birth.calculationTime}</b></span><small>{correction>=0?'+':''}{correction} min · horario histórico calculado automáticamente en {chart.birth.place}</small></div>
+    <div className="expertChart" role="group" aria-label="Tus cuatro pilares completos">{order.map(key=>{const item=chart.pillars[key];return <article className={key==='day'?'dayColumn':''} key={key}>
+      <header><small>{pillarMeta[key].eyebrow}</small><b>{pillarMeta[key].title}</b>{key==='day'&&<em>TU CENTRO</em>}</header>
+      <button className="expertStem" aria-pressed={pick.pillar===key&&pick.kind==='stem'} onClick={()=>setPick({pillar:key,kind:'stem'})} style={{'--cell':elementMeta[stems[item.stem].element].soft,'--cell-dark':elementMeta[stems[item.stem].element].dark} as CSSProperties}><small>CIELO</small><Glyph stem={item.stem} size={46}/><strong>{identityMeta[item.stem].name}</strong><span>{stems[item.stem].han} · {stems[item.stem].label}</span></button>
+      <button className="expertBranch" aria-pressed={pick.pillar===key&&pick.kind==='branch'} onClick={()=>setPick({pillar:key,kind:'branch'})} style={{'--cell':elementMeta[branches[item.branch].element].soft,'--cell-dark':elementMeta[branches[item.branch].element].dark} as CSSProperties}><small>TIERRA</small><b>{branches[item.branch].han}</b><strong>{branches[item.branch].label}</strong><span>{elementMeta[branches[item.branch].element].label}</span></button>
+      <div className="hiddenStems"><small>ENERGÍA DE FONDO</small>{item.hidden.map(hidden=><button key={hidden} aria-pressed={pick.pillar===key&&pick.kind==='hidden'&&pick.stem===hidden} onClick={()=>setPick({pillar:key,kind:'hidden',stem:hidden})} style={{'--chip':elementMeta[stems[hidden].element].soft,'--chip-dark':elementMeta[stems[hidden].element].dark} as CSSProperties}>{identityMeta[hidden].name}<span>{stems[hidden].han}</span></button>)}</div>
+      {chart.voidPillars.includes(key)&&<div className="voidBadge">○ Aquí toca tu vacío</div>}
+    </article>})}</div>
+    <aside className="expertExplanation" aria-live="polite"><Glyph stem={pick.kind==='branch'?pillar.stem:selectedStem} size={52}/><div><small>{pillarMeta[pick.pillar].eyebrow} · {pick.kind==='stem'?'lo visible':pick.kind==='branch'?'la base':'lo que opera detrás'}</small><h3>{detail.title}</h3><p>{detail.body}</p><Technical>{detail.technical}</Technical></div></aside>
+  </section>
+}
+function SectionHead({kicker,title}:{kicker:string;title:string}){return <header className="sectionHead"><div><p className="eyebrow">{kicker}</p><h2>{title}</h2></div></header>}
+

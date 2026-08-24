@@ -20,4 +20,14 @@ describe('cartas de referencia',()=>{
     expect(calculateChart(fixtures.eber).voidBranches.length).toBe(2)
     expect(calculateChart(fixtures.anju).voidBranches.length).toBe(2)
   })
+  it('ajusta automáticamente la hora civil con zona histórica y longitud',()=>{
+    const eber=calculateChart(fixtures.eber)
+    const anju=calculateChart(fixtures.anju)
+    expect(eber.birth.calculationTime).not.toBe(fixtures.eber.time)
+    expect(anju.birth.calculationTime).not.toBe(fixtures.anju.time)
+    expect(Number.isFinite(eber.birth.solarCorrectionMinutes)).toBe(true)
+    expect(eber.birth.zoneOffset).toBe(-5)
+    expect(anju.birth.zoneOffset).toBe(-5)
+  })
 })
+
