@@ -6,7 +6,8 @@ import {
   stems, voidReading,
   type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
-import { buildAnimalPost, buildCenterPost, buildHoyPost, buildWeeklyAnimalCarousel } from './social/library'
+import { buildAnimalPost, buildCenterPost, buildWeeklyAnimalCarousel } from './social/library'
+import { buildHoyPost } from './social/hoy'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
 import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatFullDate, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
 
