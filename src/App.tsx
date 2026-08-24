@@ -170,7 +170,7 @@ export default function App(){
 
   return <div className={`app ${chart?`theme-${chart.dayMaster.element}`:'theme-neutral'}`} style={style}>
     <Watercolor/>
-    {view==='home'&&<Home library={library} onOpen={open} onNew={()=>go('form',null)} onDelete={remove}/>} 
+    {view==='home'&&<Home library={library} active={active} onOpen={open} onNew={()=>go('form',null)} onDelete={remove}/>}
     {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>} 
     {view==='stories'&&chart&&<Stories chart={chart} step={storyStep} setStep={setStoryStep} onClose={finish} onSave={()=>saveLater(active!,storyStep,setToast)} onFinish={finish}/>} 
     {view==='reading'&&chart&&<Reading chart={chart} onHome={()=>go('home',null)} onReplay={()=>{setStoryStep(0);go('stories')}} onTool={target=>go(target)}/>}
@@ -184,9 +184,10 @@ export default function App(){
 
 function Watercolor(){return <div className="watercolor" aria-hidden="true"><i/><i/><i/><i/><i/></div>}
 
-function Home({library,onOpen,onNew,onDelete}:{library:SavedMap[];onOpen:(x:SavedMap,v?:View)=>void;onNew:()=>void;onDelete:(id:string)=>void}){
+function Home({library,active,onOpen,onNew,onDelete}:{library:SavedMap[];active:BirthInput|null;onOpen:(x:SavedMap,v?:View)=>void;onNew:()=>void;onDelete:(id:string)=>void}){
+  const menuMap=(active&&library.find(item=>sameBirth(item.input,active)))||library[0]
   return <main className="shell home">
-    <header className="topbar"><Brand/><button className="roundButton" onClick={onNew} aria-label="Crear otra carta">＋</button></header>
+    <header className="topbar"><Brand onNavigate={target=>{if(target!=='home'&&menuMap)onOpen(menuMap,target)}}/><button className="roundButton" onClick={onNew} aria-label="Crear otra carta">＋</button></header>
     <section className="homeHero"><p className="eyebrow">QUÉ BUENO VERTE OTRA VEZ</p><h1>Tus mapas,<br/><em>siempre contigo.</em></h1><p>Aquí puedes volver a tu lectura, descargar tus imágenes o crear una carta para alguien más.</p></section>
     <div className="libraryGrid">
       {library.map(item=>{const c=calculateChart(item.input),identity=identityMeta[c.dayMaster.stem],meta=elementMeta[c.dayMaster.element];return <article className="mapCard" key={item.id} style={{'--card':meta.color,'--card-soft':meta.soft} as CSSProperties}>
