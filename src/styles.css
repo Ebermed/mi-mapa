@@ -155,3 +155,24 @@ html,body,#root,.app{max-inline-size:100%;overflow-x:clip}.formPage,.formIntro,.
 @media(max-width:380px), (max-height:700px){
   .story{padding-top:76px;padding-bottom:14px}.profilesStory>h2,.elementsStory>h2,.actionsStory>h2,.interactionStory>h2,.storyCopy h2{font-size:1.95rem}.profilesGrid{margin:7px 0}.miniProfile{padding:5px 3px}.profilesStory>p:last-of-type,.elementsStory>p,.interactionStory>p,.storyCopy>p:not(.eyebrow),.pillarStory>p{font-size:.75rem;line-height:1.3}.storyCenter h1{font-size:3.55rem}.elementRow{height:105px}.elementsStory .elementRow{flex-basis:105px}.actionList article{padding:6px 0}.actionList p{font-size:.66rem}.pillarHero .glyph{--glyph-size:62px!important}.pillarStory h3{font-size:1.45rem}.technical{margin-top:6px}.finalProfiles{display:none}
 }
+
+/* Story pacing and legibility */
+.progress i.active:after{animation-duration:var(--story-duration,10s)}
+.storyFinalCta{display:none}
+
+@media(max-width:700px){
+  .profilesStory>p:last-of-type,.elementsStory>p,.interactionStory>p,.storyCopy>p:not(.eyebrow),.pillarStory>p{font-size:.95rem;line-height:1.48;font-weight:500;margin:8px 0}
+  .actionList p{font-size:.82rem;line-height:1.4;font-weight:500}
+  .elementsStory .elementRow{height:175px;flex:0 0 175px;margin:12px 0 18px}
+  .elementsStory>p{margin-top:14px}
+  .finalCard>p{font-size:.95rem;line-height:1.35;font-weight:500}
+  .storyComplete .story{padding-bottom:92px}
+  .storyFinalCta{position:absolute;z-index:7;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;justify-content:space-between;width:min(330px,calc(100% - 56px));border:0;border-radius:999px;background:var(--ink);color:#fff;padding:15px 20px;font-weight:800;box-shadow:0 16px 38px rgba(45,39,34,.2)}
+  .storyFinalCta span{font-size:1.15rem}
+}
+
+@media(max-width:380px), (max-height:700px){
+  .profilesStory>p:last-of-type,.elementsStory>p,.interactionStory>p,.storyCopy>p:not(.eyebrow),.pillarStory>p{font-size:.84rem;line-height:1.38}
+  .elementsStory .elementRow{height:145px;flex-basis:145px;margin:8px 0 12px}
+  .actionList p{font-size:.74rem;line-height:1.32}
+}
