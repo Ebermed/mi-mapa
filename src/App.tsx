@@ -6,10 +6,11 @@ import {
   stems, voidReading,
   type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
+import { buildAnimalPost, buildCenterPost, buildHoyPost, buildWeeklyAnimalCarousel } from './social/library'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
 import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatFullDate, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
 
-type View = 'home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'
+type View = 'home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'|'studio'
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
 type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
 
@@ -114,7 +115,7 @@ function Brand({onNavigate}:{onNavigate?:(view:View)=>void}){
 export default function App(){
   const shared=useMemo(()=>new URLSearchParams(location.search).get('c'),[])
   const route=useMemo(()=>new URLSearchParams(location.search).get('vista'),[])
-  const routeView:View|null=route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':null
+  const routeView:View|null=route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':route==='estudio-7m3p'?'studio':null
   const sharedJourney=useMemo(()=>shared?decodeJourney(shared):null,[shared])
   const [library,setLibrary]=useState<SavedMap[]>(loadLibrary)
   const [active,setActive]=useState<BirthInput|null>(sharedJourney?.input||null)
@@ -170,6 +171,7 @@ export default function App(){
 
   return <div className={`app ${chart?`theme-${chart.dayMaster.element}`:'theme-neutral'}`} style={style}>
     <Watercolor/>
+    {view==='studio'&&<Studio/>}
     {view==='home'&&<Home library={library} active={active} onOpen={open} onNew={()=>go('form',null)} onDelete={remove}/>}
     {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>} 
     {view==='stories'&&chart&&<Stories chart={chart} step={storyStep} setStep={setStoryStep} onClose={finish} onSave={()=>saveLater(active!,storyStep,setToast)} onFinish={finish}/>} 
@@ -181,6 +183,8 @@ export default function App(){
     {toast&&<div className="toast" role="status">{toast}</div>}
   </div>
 }
+
+function Studio(){const [kind,setKind]=useState<'today'|'center'|'animal'|'week'>('today'),[seed,setSeed]=useState(0);const make=()=>{const date=todayInZone('America/Mexico_City');if(kind==='today')return buildHoyPost(date);if(kind==='center'){const keys=Object.keys(stems) as StemKey[];return buildCenterPost(keys[Math.floor(Math.random()*keys.length)]!)}if(kind==='animal'){const keys=Object.keys(branches) as (keyof typeof branches)[];return buildAnimalPost(keys[Math.floor(Math.random()*keys.length)]!)}const cards=buildWeeklyAnimalCarousel(date);const card=cards[Math.floor(Math.random()*cards.length)]!;return {title:card.title,hook:card.focus,body:`Años: ${card.years}`,cta:card.cta,palette:card.palette}};const post=useMemo(make,[kind,seed]);const download=()=>{const esc=(x:string)=>x.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]!));const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350"><rect width="1080" height="1350" fill="#f4ede1"/><rect x="48" y="48" width="984" height="1254" rx="56" fill="#fffdf7"/><text x="88" y="115" font-family="Arial" font-size="24" font-weight="800" fill="#3e3832">十 MI MAPA</text><text x="88" y="245" font-family="Georgia" font-size="68" font-weight="700" fill="#3e3832">${esc(post.title)}</text><foreignObject x="88" y="350" width="820" height="270"><div xmlns="http://www.w3.org/1999/xhtml" style="font:700 56px Georgia;line-height:1.12;color:#3e3832">${esc(post.hook)}</div></foreignObject><foreignObject x="88" y="710" width="820" height="210"><div xmlns="http://www.w3.org/1999/xhtml" style="font:30px Georgia;line-height:1.3;color:#3e3832">${esc(post.body)}</div></foreignObject><text x="88" y="1190" font-family="Arial" font-size="19" font-weight="800" fill="#3e3832">TU CARTA COMPLETA ES GRATIS</text><text x="88" y="1230" font-family="Arial" font-size="16" fill="#3e3832">ebermed.github.io/mi-mapa</text></svg>`;const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;canvas.getContext('2d')!.drawImage(img,0,0);canvas.toBlob(blob=>{if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='mi-mapa-post.png';link.click()},'image/png')};img.src=url};return <main className="shell studio"><header className="topbar"><Brand/><span className="stepLabel">ESTUDIO</span></header><section className="formIntro"><p className="eyebrow">PUBLICACIONES GENERALES</p><h1>Estudio<br/><em>MI MAPA.</em></h1><p>Genera una pieza, descarga la imagen y copia el texto. La ruta queda fuera de la navegación pública.</p></section><div className="studioTabs">{([['today','Hoy'],['center','Centro'],['animal','Animal'],['week','Semana']] as const).map(([id,label])=><button className={kind===id?'active':''} onClick={()=>{setKind(id);setSeed(x=>x+1)}}>{label}</button>)}</div><article className="studioPreview" style={{'--accent':elementMeta[post.palette as ElementKey]?.color||'#8a6550'} as CSSProperties}><small>十 MI MAPA</small><b>{post.title}</b><h2>{post.hook}</h2><p>{post.body}</p><em>{post.cta}</em></article><div className="shareActions"><button className="shareButton" onClick={()=>setSeed(x=>x+1)}>Generar otra <span>↻</span></button><button className="shareButton downloadButton" onClick={download}>Descargar PNG <span>↓</span></button></div><textarea className="studioCaption" readOnly value={`${post.hook}\n\n${post.body}\n\n${post.cta}`}/></main>}
 
 function Watercolor(){return <div className="watercolor" aria-hidden="true"><i/><i/><i/><i/><i/></div>}
 
