@@ -232,20 +232,22 @@ function BirthForm({onSubmit,onBack}:{onSubmit:(x:BirthInput)=>void;onBack?:()=>
   </main>
 }
 
-const STORY_DURATION=15000
+const STORY_DURATION=10000
+const LOADING_DURATION=3000
 function storyCount(chart:Chart|null){return chart?4+profileOrder(chart).length+10:1}
 function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:number;setStep:(n:number)=>void;onClose:()=>void;onSave:()=>void;onFinish:()=>void}){
   const total=storyCount(chart),identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],profileKeys=profileOrder(chart),afterPillars=4+profileKeys.length
+  const duration=step===0?LOADING_DURATION:STORY_DURATION
   const next=()=>step===total-1?onFinish():setStep(Math.min(total-1,step+1)),prev=()=>setStep(Math.max(0,step-1))
   const [paused,setPaused]=useState(false)
-  const remaining=useRef(STORY_DURATION),startedAt=useRef(0),pressStartedAt=useRef(0),pressOrigin=useRef({x:0,y:0}),pressMoved=useRef(false)
-  useEffect(()=>{remaining.current=STORY_DURATION;setPaused(false)},[step])
+  const remaining=useRef(duration),startedAt=useRef(0),pressStartedAt=useRef(0),pressOrigin=useRef({x:0,y:0}),pressMoved=useRef(false)
+  useEffect(()=>{remaining.current=duration;setPaused(false)},[step,duration])
   useEffect(()=>{
     if(paused)return
     startedAt.current=performance.now()
-    const timer=window.setTimeout(()=>{remaining.current=STORY_DURATION;next()},remaining.current)
+    const timer=window.setTimeout(()=>{remaining.current=duration;next()},remaining.current)
     return()=>{window.clearTimeout(timer);remaining.current=Math.max(0,remaining.current-(performance.now()-startedAt.current))}
-  },[step,paused])
+  },[step,paused,duration])
   const beginPress=(event:ReactPointerEvent<HTMLButtonElement>)=>{pressStartedAt.current=performance.now();pressOrigin.current={x:event.clientX,y:event.clientY};pressMoved.current=false;event.currentTarget.setPointerCapture(event.pointerId);setPaused(true)}
   const movePress=(event:ReactPointerEvent<HTMLButtonElement>)=>{if(Math.hypot(event.clientX-pressOrigin.current.x,event.clientY-pressOrigin.current.y)>12)pressMoved.current=true}
   const endPress=(direction:-1|1,event:ReactPointerEvent<HTMLButtonElement>)=>{const isTap=performance.now()-pressStartedAt.current<350&&!pressMoved.current;if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);setPaused(false);if(isTap)(direction===-1?prev:next)()}
@@ -269,12 +271,13 @@ function Stories({chart,step,setStep,onClose,onSave,onFinish}:{chart:Chart;step:
     content=<StoryQuote kicker="ASÍ APARECE EN TU MAPA" title={copy.title} body={copy.body}/>
   }
   else content=<FinalStory chart={chart}/>
-  return <main className={`storyShell${paused?' storyPaused':''}`}>
-    <div className="progress" aria-label={`Historia ${step+1} de ${total}`}>{Array.from({length:total},(_,i)=><i key={i} className={i<step?'done':i===step?'active':''}/>)}</div>
+  return <main className={`storyShell${paused?' storyPaused':''}${step===total-1?' storyComplete':''}`} style={{'--story-duration':`${duration}ms`} as CSSProperties}>
+    <div className="progress" aria-label={step===0?'Calculando tu mapa':`Historia ${step} de ${total-1}`}>{step>0&&Array.from({length:total-1},(_,i)=>{const storyStep=i+1;return <i key={storyStep} className={storyStep<step?'done':storyStep===step?'active':''}/>})}</div>
     <Brand/><button className="storyClose" onClick={onClose} aria-label="Saltar historias y abrir la lectura completa">×</button>
     <section className={`story story-${step}`} key={step}>{content}</section>
-    <div className="storyTapZones"><button type="button" aria-label="Historia anterior" onPointerDown={beginPress} onPointerMove={movePress} onPointerUp={event=>endPress(-1,event)} onPointerCancel={cancelPress} onContextMenu={event=>event.preventDefault()}/><button type="button" aria-label="Historia siguiente" onPointerDown={beginPress} onPointerMove={movePress} onPointerUp={event=>endPress(1,event)} onPointerCancel={cancelPress} onContextMenu={event=>event.preventDefault()}/></div>
-    <div className="storyNav"><button onClick={prev} disabled={step===0} aria-label="Historia anterior">←</button><div><button className="later" onClick={onSave}>Verlo más tarde</button><button className="next" onClick={next}>{step===total-1?'Quiero saber más':'Continuar'} <span>→</span></button></div></div>
+    {step>0&&<div className="storyTapZones"><button type="button" aria-label="Historia anterior" onPointerDown={beginPress} onPointerMove={movePress} onPointerUp={event=>endPress(-1,event)} onPointerCancel={cancelPress} onContextMenu={event=>event.preventDefault()}/><button type="button" aria-label="Historia siguiente" onPointerDown={beginPress} onPointerMove={movePress} onPointerUp={event=>endPress(1,event)} onPointerCancel={cancelPress} onContextMenu={event=>event.preventDefault()}/></div>}
+    {step>0&&<div className="storyNav"><button onClick={prev} aria-label="Historia anterior">←</button><div><button className="later" onClick={onSave}>Verlo más tarde</button><button className="next" onClick={next}>{step===total-1?'Conocer mi mapa':'Continuar'} <span>→</span></button></div></div>}
+    {step===total-1&&<button type="button" className="storyFinalCta" onClick={onFinish}>Conocer mi mapa <span>→</span></button>}
   </main>
 }
 
