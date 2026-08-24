@@ -114,7 +114,7 @@ function Brand({onNavigate}:{onNavigate?:(view:View)=>void}){
 
 export default function App(){
   const shared=useMemo(()=>new URLSearchParams(location.search).get('c'),[])
-  const route=useMemo(()=>new URLSearchParams(location.search).get('vista'),[])
+  const route=useMemo(()=>location.hash==='#estudio-7m3p'?'estudio-7m3p':new URLSearchParams(location.search).get('vista'),[])
   const routeView:View|null=route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':route==='estudio-7m3p'?'studio':null
   const sharedJourney=useMemo(()=>shared?decodeJourney(shared):null,[shared])
   const [library,setLibrary]=useState<SavedMap[]>(loadLibrary)
