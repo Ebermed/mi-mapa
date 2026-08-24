@@ -6,6 +6,7 @@ export type HoyPost = {
   title:string
   eyebrow:string
   hook:string
+  body:string
   explanation:string
   curiosity:string
   cta:string
@@ -39,6 +40,7 @@ export function buildHoyPost(date:string):HoyPost{
     title,
     eyebrow:formatFullDate(date).toUpperCase(),
     hook,
+    body:day.body,
     explanation:day.body,
     curiosity,
     cta,
