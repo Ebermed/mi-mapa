@@ -194,7 +194,16 @@ function detectInteractions(p:Partial<Record<PillarKey,Pillar>>):Interaction[]{
   const present=entries.map(([,x])=>x.branch)
   const triples:[BranchKey[],string][]=[[["tiger","horse","dog"],'armonía de fuego'],[["pig","rabbit","goat"],'armonía de madera'],[["monkey","rat","dragon"],'armonía de agua'],[["snake","rooster","ox"],'armonía de metal']]
   for(const [set,note] of triples) if(set.every(x=>present.includes(x))) out.push({id:note,kind:'armonía triple',branches:set,pillars:entries.filter(([,x])=>set.includes(x.branch)).map(([k])=>k),note})
-  return out
+  const unique=new Map<string,Interaction>()
+  for(const interaction of out){
+    const key=`${interaction.kind}:${[...new Set(interaction.branches)].sort().join('+')}`
+    const current=unique.get(key)
+    if(current){
+      current.pillars=[...new Set([...current.pillars,...interaction.pillars])]
+      current.branches=[...new Set([...current.branches,...interaction.branches])]
+    }else unique.set(key,{...interaction,pillars:[...interaction.pillars],branches:[...interaction.branches]})
+  }
+  return [...unique.values()]
 }
 
 function voidFor(day:Pillar){
