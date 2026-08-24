@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
   branches, branchPace, calculateChart, elementMeta, identityMeta, interactionReading,
   lowestElement, pillarLabel, pillarMeta, pillarReading, profileSummary, strongestElement,
@@ -405,19 +405,28 @@ function drawSummaryPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=
 
 function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onReplay:()=>void;onTool:(view:View)=>void}){
   const identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0],voidCopy=voidReading(chart)
+  const jumpTo=(event:ReactMouseEvent<HTMLAnchorElement>,sectionId:string)=>{
+    event.preventDefault()
+    const section=document.getElementById(sectionId)
+    if(!section)return
+    const url=new URL(window.location.href)
+    url.hash=sectionId
+    history.replaceState(history.state,'',url)
+    section.scrollIntoView({behavior:'smooth',block:'start'})
+  }
   return <main className="reading">
     <header className="readingTop"><button onClick={onHome}>← Tus cartas</button><Brand onNavigate={target=>target==='home'?onHome():target==='reading'?window.scrollTo({top:0,behavior:'smooth'}):onTool(target)}/><button onClick={onReplay}>Ver historias</button></header>
     <section className="readingHero"><div><p className="eyebrow">ESTE ERES TÚ</p><h1>{identity.name}</h1><p>{identity.headline}</p><div className="heroActions"><Technical>{stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</Technical><ShareButton kind="identity" chart={chart} downloadOnly>Descargar mi perfil</ShareButton></div></div><Glyph stem={chart.dayMaster.stem} size={160}/></section>
     <section className="readingSection introReading"><p>{identity.body}</p><p>{identity.friction}</p></section>
     <div className="readingBody">
       <aside className="readingRail"><p>EXPLORA TU MAPA</p><nav aria-label="Secciones de tu lectura">
-        <a href="#perfiles"><i/>Tus {profileCountLabel(chart)} perfiles<small>Cómo cambias según el espacio</small></a>
-        <a href="#elementos"><i/>Tus elementos<small>Recursos fáciles y conscientes</small></a>
-        <a href="#acciones"><i/>Cómo actúas<small>Lo que aparece primero</small></a>
-        <a href="#encuentros"><i/>Encuentros<small>Choques y armonías internas</small></a>
-        <a href="#vacio"><i/>Tu vacío<small>Lo que construyes a tu manera</small></a>
-        <a href="#ahora"><i/>Tu momento actual<small>Hoy, calendario, mes y ciclo</small></a>
-        <a href="#carta-completa"><i/>Carta completa<small>La estructura para ojos expertos</small></a>
+        <a href="#perfiles" onClick={event=>jumpTo(event,'perfiles')}><i/>Tus {profileCountLabel(chart)} perfiles<small>Cómo cambias según el espacio</small></a>
+        <a href="#elementos" onClick={event=>jumpTo(event,'elementos')}><i/>Tus elementos<small>Recursos fáciles y conscientes</small></a>
+        <a href="#acciones" onClick={event=>jumpTo(event,'acciones')}><i/>Cómo actúas<small>Lo que aparece primero</small></a>
+        <a href="#encuentros" onClick={event=>jumpTo(event,'encuentros')}><i/>Encuentros<small>Choques y armonías internas</small></a>
+        <a href="#vacio" onClick={event=>jumpTo(event,'vacio')}><i/>Tu vacío<small>Lo que construyes a tu manera</small></a>
+        <a href="#ahora" onClick={event=>jumpTo(event,'ahora')}><i/>Tu momento actual<small>Hoy, calendario, mes y ciclo</small></a>
+        <a href="#carta-completa" onClick={event=>jumpTo(event,'carta-completa')}><i/>Carta completa<small>La estructura para ojos expertos</small></a>
       </nav></aside>
       <div className="readingContent">
         <section className="readingSection" id="perfiles"><SectionHead kicker={`TUS ${profileCountLabel(chart).toUpperCase()} PERFILES`} title="Quién eres cambia de matiz según el espacio."/><div className="longProfiles">{profileOrder(chart).map(key=>{const p=chart.pillars[key],r=pillarReading(key,p);return <article key={key}><div><Glyph stem={p.stem} size={58}/><span><small>{pillarMeta[key].eyebrow}</small><h3>{identityMeta[p.stem].name}</h3><em>{pillarMeta[key].title}</em></span></div><p>{r.body}</p><Technical>{pillarLabel(p)}</Technical></article>})}</div><ShareActions kind="profiles" chart={chart} shareLabel="Compartir mis perfiles"/></section>
@@ -425,7 +434,6 @@ function Reading({chart,onHome,onReplay,onTool}:{chart:Chart;onHome:()=>void;onR
         <section className="readingSection" id="acciones"><SectionHead kicker="CÓMO ACTÚAS" title="Las respuestas que tienes más a la mano."/><div className="longActions">{topActions(chart).map(([key],index)=><article key={key}><span aria-hidden="true">→</span><div><small>{index===0?'APARECE PRIMERO':index===1?'TAMBIÉN MUY DISPONIBLE':'OTRO RECURSO CERCANO'}</small><h3>{actionMeta[key].name}</h3><p>{actionMeta[key].copy}</p></div></article>)}</div></section>
         <section className="readingSection" id="encuentros"><SectionHead kicker="CHOQUES Y ARMONÍAS" title="Lo que pasa cuando tus partes se encuentran."/><div className="interactionGrid">{chart.interactions.length?chart.interactions.map(item=>{const r=interactionReading(item);return <article key={item.id}><small>{item.kind}</small><h3>{r.title}</h3><p>{r.body}</p><Technical>{item.note}</Technical></article>}):<article><h3>Cada área conserva su propio ritmo.</h3><p>Tus {profileCountLabel(chart)} ramas dejan espacio para que cada área responda de forma independiente. Las etapas y fechas futuras pueden activar relaciones nuevas.</p></article>}</div></section>
         <section className="readingSection" id="vacio"><SectionHead kicker="TU VACÍO" title={voidCopy.title}/><div className="voidLong"><span className="voidRing"/><p>{voidCopy.body}</p></div></section>
-        <section className="readingSection" id="palacios"><SectionHead kicker="TUS PALACIOS" title={`${profileCountLabel(chart).charAt(0).toUpperCase()+profileCountLabel(chart).slice(1)} áreas donde se expresa tu carta.`}/><div className="palaces">{profileOrder(chart).map(key=><article key={key}><small>{pillarMeta[key].eyebrow}</small><h3>{pillarMeta[key].title}</h3><p>{pillarMeta[key].intro}</p></article>)}</div></section>
         <TemporalStrip chart={chart} onTool={onTool}/>
         <ExpertChart chart={chart}/>
         <section className="readingSection downloads"><SectionHead kicker="PARA GUARDAR" title="Descarga cualquiera de tus imágenes."/><div><ShareButton kind="identity" chart={chart} downloadOnly>Día Maestro</ShareButton><ShareButton kind="summary" chart={chart} downloadOnly>Resumen completo</ShareButton><ShareButton kind="profiles" chart={chart} downloadOnly>{chart.birth.timeUnknown?'Tres perfiles':'Cuatro perfiles'}</ShareButton><ShareButton kind="elements" chart={chart} downloadOnly>Gráfica de elementos</ShareButton></div></section>
