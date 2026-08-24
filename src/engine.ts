@@ -270,10 +270,12 @@ export function pillarLabel(p:Pillar){return `${stems[p.stem].label} · ${branch
 
 export function interactionReading(interaction:Interaction){
   const places=interaction.pillars.map(p=>pillarMeta[p].title.toLowerCase()).join(' y ')
-  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:'Hay partes de ti que se hacen equipo',body:`Entre ${places} hay una armonía: cuando una de esas áreas se activa, la otra suele encontrar cómo acompañarla. Ese puente facilita coordinar ambas necesidades.`}
-  if(interaction.kind==='choque') return {title:'Dos ritmos tuyos piden cosas distintas',body:`Entre ${places} aparece un choque. Puede sentirse como cambiar de prioridad de golpe o querer avanzar de dos maneras incompatibles. Nombrar qué necesidad toca primero ayuda a ordenar esa tensión.`}
-  if(interaction.kind==='eco interno') return {title:'Un mismo patrón se repite con fuerza',body:`La misma energía aparece en ${places}. Cuando se activa, puede volverse muy evidente. Te sirve ponerle nombre temprano para reconocerlo antes de actuar en automático.`}
-  return {title:'Hay una fricción que conviene mirar de frente',body:`Entre ${places} puede acumularse incomodidad antes de que la expreses. Cuando notes que algo te pesa, decir qué necesitas suele ser más útil que seguir ajustándote en silencio.`}
+  const animalNames=[...new Set(interaction.branches)].map(branch=>branches[branch].label)
+  const animals=animalNames.length>2?`${animalNames.slice(0,-1).join(', ')} y ${animalNames.at(-1)}`:animalNames.join(' y ')
+  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:`${animals} se apoyan dentro de tu carta`,body:`Tienes esta combinación dentro de tu carta. Eso significa que ${places} pueden trabajar en la misma dirección: cuando una se activa, la otra encuentra cómo acompañarla y ambas necesidades se coordinan con mayor facilidad.`}
+  if(interaction.kind==='choque') return {title:`${animals} son contrarios dentro de tu carta`,body:`Tienes a ambos dentro de tu carta. Eso significa que ${places} pueden pedirte cosas distintas al mismo tiempo: una parte quiere avanzar de una forma y la otra tira en sentido contrario. Elegir qué necesita atención primero ayuda a resolver el choque.`}
+  if(interaction.kind==='eco interno') return {title:`${animals} aparece más de una vez`,body:`Esta energía se repite en ${places}. Eso significa que su manera de reaccionar gana fuerza cuando se activa y puede aparecer en varias áreas de tu vida al mismo tiempo.`}
+  return {title:`${animals} forman una tensión dentro de tu carta`,body:`Tienes a ambos dentro de tu carta. Eso significa que entre ${places} puede acumularse incomodidad: una parte intenta adaptarse mientras la otra pide expresar lo que necesita. Ponerlo en palabras ayuda a ordenar esa tensión.`}
 }
 
 export function voidReading(chart:Chart){
