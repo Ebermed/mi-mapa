@@ -60,40 +60,40 @@ const hanStem = Object.fromEntries(Object.entries(stems).map(([key,value]) => [v
 const hanBranch = Object.fromEntries(Object.entries(branches).map(([key,value]) => [value.han,key])) as Record<string,BranchKey>
 
 export const elementMeta: Record<ElementKey,{ label:string; article:string; color:string; dark:string; soft:string; sentence:string }> = {
-  wood:{label:'Madera',article:'la madera',color:'#71845d',dark:'#3f5841',soft:'#dce7d4',sentence:'Te ayuda a empezar, adaptarte y hacer crecer lo que importa.'},
-  fire:{label:'Fuego',article:'el fuego',color:'#d4774c',dark:'#8f422d',soft:'#f6d9c9',sentence:'Te ayuda a encender el movimiento y volver visible lo que importa.'},
-  earth:{label:'Tierra',article:'la tierra',color:'#b58b55',dark:'#735535',soft:'#ebddc5',sentence:'Te ayuda a sostener procesos, personas y responsabilidades.'},
+  wood:{label:'Madera',article:'la madera',color:'#71845d',dark:'#3f5841',soft:'#dce7d4',sentence:'Te ayuda a empezar, adaptarte y mejorar algo mientras lo haces.'},
+  fire:{label:'Fuego',article:'el fuego',color:'#d4774c',dark:'#8f422d',soft:'#f6d9c9',sentence:'Te ayuda a presentar ideas, hablar con claridad y tomar iniciativa.'},
+  earth:{label:'Tierra',article:'la tierra',color:'#b58b55',dark:'#735535',soft:'#ebddc5',sentence:'Te ayuda a organizar tareas, cuidar de otras personas y cumplir responsabilidades.'},
   metal:{label:'Metal',article:'el metal',color:'#8b8d8a',dark:'#555b5e',soft:'#e4e4e1',sentence:'Te ayuda a elegir, ordenar y poner límites claros.'},
-  water:{label:'Agua',article:'el agua',color:'#6f91a2',dark:'#355d71',soft:'#d5e4e8',sentence:'Te ayuda a observar, conectar información y encontrar otra ruta.'},
+  water:{label:'Agua',article:'el agua',color:'#6f91a2',dark:'#355d71',soft:'#d5e4e8',sentence:'Te ayuda a observar, relacionar información y considerar varias opciones.'},
 }
 
 export const identityMeta: Record<StemKey,{ name:string; caption:string; headline:string; body:string; friction:string }> = {
-  jia:{name:'Roble',caption:'dirección y constancia',headline:'Cuando eliges una dirección, sueles sostenerla incluso cuando aparecen dificultades.',body:'Te sale avanzar con una idea clara de hacia dónde quieres ir y seguir empujando mientras todavía tenga sentido.',friction:'A veces tardas en revisar el rumbo porque ya invertiste mucho en sostenerlo.'},
-  yi:{name:'Hiedra',caption:'adaptación y estrategia',headline:'Puedes cambiar la forma de llegar sin perder de vista lo que querías conseguir.',body:'Adaptarte te sale como estrategia: miras qué hay disponible, encuentras margen y ajustas la ruta.',friction:'Adaptarte tanto puede hacer que otros tarden en notar dónde están tus límites.'},
-  bing:{name:'Sol',caption:'impulso y presencia',headline:'Cuando algo te entusiasma, se te nota y puedes contagiar ese impulso.',body:'Te sale poner energía visible en lo que quieres mover y ayudar a que algo arranque.',friction:'Puedes mantener el acelerador puesto cuando ya convendría bajar el ritmo.'},
-  ding:{name:'Brasa',caption:'detalle y continuidad',headline:'Sueles arrancar mejor cuando ya entendiste cómo quieres hacer las cosas.',body:'Te sirve preparar, cuidar detalles y construir confianza antes de exponerte del todo.',friction:'Puedes esperar demasiado a sentir que todo está listo.'},
-  wu:{name:'Montaña',caption:'estabilidad y sostén',headline:'Cuando te comprometes con algo, tiendes a sostenerlo hasta encontrar cómo hacerlo funcionar.',body:'La constancia aparece con facilidad cuando sientes que algo vale la pena o depende de ti.',friction:'Puedes terminar cargando mucho más de lo que te toca.'},
-  ji:{name:'Huerto',caption:'cuidado y mantenimiento',headline:'Detectas rápido los cuidados pequeños que mantienen algo funcionando.',body:'Te sale planear, mantener y ajustar sobre la marcha para que lo importante siga creciendo.',friction:'Puedes ocuparte tanto de lo demás que termines postergando lo tuyo.'},
-  geng:{name:'Acero',caption:'decisión y firmeza',headline:'Cuando ya sabes qué sobra, te resulta natural cortarlo y seguir.',body:'Bajo presión puedes volverte muy directo para decidir qué sirve, qué estorba y qué toca hacer.',friction:'Puedes cerrar una opción antes de escuchar algo que habría cambiado la decisión.'},
+  jia:{name:'Roble',caption:'dirección y constancia',headline:'Cuando eliges un objetivo, sigues trabajando aunque aparezcan dificultades.',body:'Te resulta natural empezar pronto, organizar los siguientes pasos y resolver obstáculos conforme aparecen.',friction:'A veces tardas en cambiar el plan porque ya invertiste mucho tiempo o esfuerzo.'},
+  yi:{name:'Hiedra',caption:'adaptación y estrategia',headline:'Cuando cambia el plan, buscas otra manera de conseguir lo que querías.',body:'Revisas lo que tienes disponible, comparas opciones y haces ajustes sin perder el objetivo.',friction:'Puedes adaptarte tanto a otras personas que tus límites quedan poco claros.'},
+  bing:{name:'Sol',caption:'iniciativa y comunicación',headline:'Cuando algo te entusiasma, participas y animas a otras personas a empezar.',body:'Sueles proponer ideas, explicar lo que quieres hacer y tomar la iniciativa.',friction:'Puedes seguir trabajando o hablando del tema cuando ya convendría hacer una pausa.'},
+  ding:{name:'Brasa',caption:'detalle y continuidad',headline:'Sueles empezar mejor cuando ya entendiste cómo quieres hacer las cosas.',body:'Te sirve preparar, cuidar detalles y generar confianza antes de presentar tu trabajo.',friction:'Puedes esperar demasiado a sentir que todo está listo.'},
+  wu:{name:'Montaña',caption:'estabilidad y responsabilidad',headline:'Cuando te comprometes con algo, sigues hasta encontrar una solución.',body:'Cumples con constancia cuando algo te importa o alguien depende de ti.',friction:'Puedes aceptar más responsabilidades de las que te corresponden.'},
+  ji:{name:'Huerto',caption:'cuidado y mantenimiento',headline:'Detectas rápido los cuidados pequeños que mantienen algo funcionando.',body:'Te resulta natural planear, dar seguimiento y hacer ajustes pequeños durante una tarea.',friction:'Puedes ocuparte tanto de otras personas que postergas tus propios pendientes.'},
+  geng:{name:'Acero',caption:'decisión y firmeza',headline:'Cuando detectas un problema, quieres decidir qué hacer y resolverlo.',body:'Bajo presión puedes ser muy directo para elegir qué sirve, qué estorba y qué toca hacer.',friction:'Puedes descartar una opción antes de escuchar información que cambiaría la decisión.'},
   xin:{name:'Joya',caption:'precisión y criterio',headline:'Sueles notar detalles que otras personas dejan pasar.',body:'Antes de dar algo por terminado, revisas la forma, la precisión y si cada parte quedó como querías.',friction:'Puedes seguir corrigiendo cuando el resultado ya funciona.'},
-  ren:{name:'Marea',caption:'movimiento y conexión',headline:'Cuando aparece un problema, tu cabeza abre varias rutas a la vez.',body:'Te sale conectar información, personas y opciones mientras sigues avanzando.',friction:'Puedes abrir más frentes de los que alcanzas a cerrar.'},
-  gui:{name:'Rocío',caption:'contexto e imaginación',headline:'Sueles encontrar salidas fuera de la ruta más obvia.',body:'Lees el contexto, conectas señales pequeñas y cambias de enfoque cuando aparece información nueva.',friction:'Puedes seguir explorando posibilidades cuando ya necesitas escoger una.'},
+  ren:{name:'Marea',caption:'opciones y conexiones',headline:'Cuando aparece un problema, consideras varias soluciones al mismo tiempo.',body:'Relacionas información, personas y opciones mientras buscas qué hacer primero.',friction:'Puedes empezar más tareas de las que alcanzas a terminar.'},
+  gui:{name:'Rocío',caption:'observación e imaginación',headline:'Sueles notar detalles que cambian la forma de entender una situación.',body:'Observas el contexto, relacionas información y cambias de opinión cuando aparece un dato importante.',friction:'Puedes seguir comparando opciones cuando ya necesitas escoger una.'},
 }
 
 export const pillarMeta: Record<PillarKey,{ title:string; eyebrow:string; intro:string }> = {
-  hour:{title:'Qué estás construyendo',eyebrow:'Tu hora',intro:'Habla de tu mundo interior, tus proyectos y la huella que quieres dejar.'},
-  day:{title:'Tu centro',eyebrow:'Tu día',intro:'Tu Día Maestro describe tu referencia más personal y la forma en que te vinculas de cerca.'},
-  month:{title:'Cómo avanzas',eyebrow:'Tu mes',intro:'Cómo entras al trabajo, los retos y los espacios donde quieres hacerte un lugar.'},
-  year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Lo que aprendiste temprano y la primera impresión que sueles dar al llegar a un lugar nuevo.'},
+  hour:{title:'Tus planes y proyectos',eyebrow:'Tu hora',intro:'Describe tus proyectos personales, tus planes de largo plazo y lo que haces cuando trabajas a solas.'},
+  day:{title:'Tu centro',eyebrow:'Tu día',intro:'Tu Día Maestro describe cómo tomas decisiones personales y cómo te relacionas de cerca.'},
+  month:{title:'Cómo trabajas',eyebrow:'Tu mes',intro:'Describe cómo trabajas, respondes a los retos y colaboras con otras personas.'},
+  year:{title:'De dónde vienes',eyebrow:'Tu año',intro:'Describe lo que aprendiste temprano y la primera impresión que sueles dar al llegar a un lugar nuevo.'},
 }
 
 export const branchPace: Record<BranchKey,string> = {
-  rat:'Primero observas por dónde se mueve la situación y luego encuentras una entrada.', ox:'Prefieres avanzar paso a paso y confiar en lo que ya demostró que funciona.',
-  tiger:'Te activa abrir camino y probar con movimiento, incluso antes de tener todo resuelto.', rabbit:'Lees el ambiente y ajustas el tono para que las cosas puedan seguir sin romperse.',
-  dragon:'Tiendes a juntar varias piezas, proteger tu espacio y reorganizar hasta que algo tenga estructura.', snake:'Miras con atención antes de moverte; cuando ves el momento, puedes actuar con mucha precisión.',
-  horse:'Necesitas movimiento visible y margen para actuar con rapidez.', goat:'Te importa que el proceso se sostenga y que las personas dentro de él tengan espacio.',
-  monkey:'Encuentras atajos, pruebas recursos distintos y aprendes mientras resuelves.', rooster:'Notas qué pieza desentona y te sale afinarla hasta que quede clara.',
-  dog:'La lealtad y el sentido de responsabilidad pesan mucho cuando decides quedarte.', pig:'Absorbes información con facilidad y prefieres comprender el contexto antes de cerrar una conclusión.',
+  rat:'Primero observas lo que ocurre y después decides cómo participar.', ox:'Prefieres trabajar paso a paso y usar métodos que ya dieron resultado.',
+  tiger:'Sueles empezar antes de tener todos los detalles resueltos.', rabbit:'Notas las reacciones de otras personas y eliges tus palabras con cuidado.',
+  dragon:'Reúnes información, asignas prioridades y reorganizas el plan cuando hace falta.', snake:'Observas antes de actuar y eliges con cuidado el momento de intervenir.',
+  horse:'Prefieres los días activos y tomar decisiones con rapidez.', goat:'Revisas que las tareas y las personas tengan lo necesario para continuar.',
+  monkey:'Pruebas recursos distintos y aprendes mientras resuelves.', rooster:'Revisas los detalles y corriges lo que quedó confuso o incompleto.',
+  dog:'Consideras los compromisos y la lealtad antes de tomar una decisión.', pig:'Escuchas, reúnes contexto y después formas una conclusión.',
 }
 
 const generatedBy: Record<ElementKey,ElementKey> = {wood:'water',fire:'wood',earth:'fire',metal:'earth',water:'metal'}
@@ -272,20 +272,20 @@ export function interactionReading(interaction:Interaction){
   const places=interaction.pillars.map(p=>pillarMeta[p].title.toLowerCase()).join(' y ')
   const animalNames=[...new Set(interaction.branches)].map(branch=>branches[branch].label)
   const animals=animalNames.length>2?`${animalNames.slice(0,-1).join(', ')} y ${animalNames.at(-1)}`:animalNames.join(' y ')
-  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:`${animals} se apoyan dentro de tu carta`,body:`Tienes esta combinación dentro de tu carta. Eso significa que ${places} pueden trabajar en la misma dirección: cuando una se activa, la otra encuentra cómo acompañarla y ambas necesidades se coordinan con mayor facilidad.`}
-  if(interaction.kind==='choque') return {title:`${animals} son contrarios dentro de tu carta`,body:`Tienes a ambos dentro de tu carta. Eso significa que ${places} pueden pedirte cosas distintas al mismo tiempo: una parte quiere avanzar de una forma y la otra tira en sentido contrario. Elegir qué necesita atención primero ayuda a resolver el choque.`}
-  if(interaction.kind==='eco interno') return {title:`${animals} aparece más de una vez`,body:`Esta energía se repite en ${places}. Eso significa que su manera de reaccionar gana fuerza cuando se activa y puede aparecer en varias áreas de tu vida al mismo tiempo.`}
-  return {title:`${animals} forman una tensión dentro de tu carta`,body:`Tienes a ambos dentro de tu carta. Eso significa que entre ${places} puede acumularse incomodidad: una parte intenta adaptarse mientras la otra pide expresar lo que necesita. Ponerlo en palabras ayuda a ordenar esa tensión.`}
+  if(interaction.kind==='armonía'||interaction.kind==='armonía triple') return {title:`${animals} se apoyan dentro de tu carta`,body:`${places} suelen llevarte a decisiones compatibles. Cuando una situación involucra ambas partes, te resulta más fácil atender las dos.`}
+  if(interaction.kind==='choque') return {title:`${animals} son contrarios dentro de tu carta`,body:`${places} pueden llevarte a decisiones distintas al mismo tiempo. Elegir qué asunto atender primero ayuda a resolver el conflicto.`}
+  if(interaction.kind==='eco interno') return {title:`${animals} aparece más de una vez`,body:`${animals} aparece en ${places}. Por eso puedes repetir una misma forma de reaccionar en varias situaciones.`}
+  return {title:`${animals} forman una tensión dentro de tu carta`,body:`Entre ${places} puedes dudar entre adaptarte y decir lo que necesitas. Explicarlo con claridad ayuda a tomar una decisión.`}
 }
 
 export function voidReading(chart:Chart){
   const names=chart.voidBranches.map(x=>branches[x].label).join(' y ')
-  if(!chart.voidPillars.length) return {title:'Tu vacío se activa por etapas',body:`Tus ramas vacías son ${names}. Su influencia aparece por temporadas cuando una etapa o una fecha las activa.`}
+  if(!chart.voidPillars.length) return {title:'Tu vacío aparece por etapas',body:`Tus ramas vacías son ${names}. Se vuelven relevantes durante ciertos ciclos y fechas.`}
   const places=chart.voidPillars.map(x=>pillarMeta[x].title.toLowerCase()).join(' y ')
-  return {title:`El vacío toca ${places}`,body:`El vacío señala un área que rara vez se sostiene en piloto automático: necesitas comprobarla en experiencia propia, redefinirla o construir una manera muy tuya de vivirla. Técnicamente, tus ramas vacías son ${names}.`}
+  return {title:`El vacío aparece en ${places}`,body:`En estas partes de tu vida sueles confiar más en lo que has comprobado por experiencia. Pruebas, comparas y decides qué te funciona. Técnicamente, tus ramas vacías son ${names}.`}
 }
 
 export function profileSummary(chart:Chart){
   const identity=identityMeta[chart.dayMaster.stem],strong=strongestElement(chart)[0],low=lowestElement(chart)[0]
-  return `${identity.headline} ${elementMeta[strong].article.charAt(0).toUpperCase()+elementMeta[strong].article.slice(1)} es tu recurso más disponible; ${elementMeta[low].article} te pide más intención.`
+  return `${identity.headline} ${elementMeta[strong].article.charAt(0).toUpperCase()+elementMeta[strong].article.slice(1)} es el recurso que usas con mayor frecuencia; ${elementMeta[low].article} aparece menos y suele requerir más práctica.`
 }
