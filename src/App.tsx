@@ -183,6 +183,7 @@ export default function App(){
     if(input&&target!=='home'&&target!=='form')url.searchParams.set('c',encodeJourney(input,target==='stories'?storyStep:0));else url.searchParams.delete('c')
     if(routeName)url.searchParams.set('vista',routeName);else url.searchParams.delete('vista')
     if(target!=='today'&&target!=='calendar')url.searchParams.delete('fecha')
+    if(target!=='today')url.searchParams.delete('origen')
     if(target!=='month')url.searchParams.delete('periodo')
     if(target!=='calendar'){url.searchParams.delete('modo');url.searchParams.delete('actividad');url.searchParams.delete('anio')}
     history[replace?'replaceState':'pushState']({},'',url)
