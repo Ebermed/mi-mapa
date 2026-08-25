@@ -2,11 +2,10 @@ name: Fábrica de publicaciones MI MAPA
 
 on:
   schedule:
-    - cron: '15 14 * * *'
-    - cron: '00 19 * * 1'
-    - cron: '00 19 * * 2'
-    - cron: '00 00 * * 4'
-    - cron: '00 00 * * 6'
+    # 09:00 de Ciudad de México (UTC-6)
+    - cron: '0 15 * * *'
+    # 20:00 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
+    - cron: '0 2 * * 0,1,2,4,6'
   workflow_dispatch:
     inputs:
       format:
@@ -64,16 +63,36 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           FORMAT="$MANUAL_FORMAT"
+          IS_EVENING='false'
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '15 14 * * *') FORMAT='hoy' ;;
-              '00 19 * * 1') FORMAT='semana-a' ;;
-              '00 19 * * 2') FORMAT='semana-b' ;;
-              '00 00 * * 4') FORMAT='centro' ;;
-              '00 00 * * 6') FORMAT='animal' ;;
+              '0 15 * * *') FORMAT='hoy' ;;
+              '0 2 * * 0,1,2,4,6')
+                IS_EVENING='true'
+                STATE_FILE='public/social/state/last-evening-series.txt'
+                LAST=''
+                if [ -f "$STATE_FILE" ]; then
+                  LAST="$(tr -d '\r\n' < "$STATE_FILE")"
+                fi
+                SERIES=(centro animal semana-a semana-b)
+                AVAILABLE=()
+                for candidate in "${SERIES[@]}"; do
+                  if [ "$candidate" != "$LAST" ]; then
+                    AVAILABLE+=("$candidate")
+                  fi
+                done
+                FORMAT="$(printf '%s\n' "${AVAILABLE[@]}" | shuf -n 1)"
+                echo "Serie nocturna anterior: ${LAST:-ninguna}"
+                ;;
+              *)
+                echo "Horario automático desconocido: $SCHEDULE"
+                exit 1
+                ;;
             esac
           fi
           echo "value=$FORMAT" >> "$GITHUB_OUTPUT"
+          echo "is_evening=$IS_EVENING" >> "$GITHUB_OUTPUT"
+          echo "Serie elegida: $FORMAT"
       - name: Generar imágenes
         if: steps.connection.outputs.ready == 'true'
         env:
@@ -160,3 +179,15 @@ jobs:
             wait_for_container "$CREATION_ID"
           fi
           curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
+      - name: Recordar última serie nocturna
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.is_evening == 'true'
+        run: |
+          mkdir -p public/social/state
+          printf '%s\n' "${{ steps.format.outputs.value }}" > public/social/state/last-evening-series.txt
+          git add public/social/state/last-evening-series.txt
+          if git diff --cached --quiet; then
+            echo "La serie nocturna ya estaba registrada."
+          else
+            git commit -m "state: recordar serie nocturna ${{ steps.format.outputs.value }}"
+            git push
+          fi
