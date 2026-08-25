@@ -99,7 +99,7 @@ function drawAnimal(ctx:CanvasRenderingContext2D,post:SocialPost){
   route(ctx,meta.color,[[70,620],[270,520],[480,700],[740,540],[1010,660]]);pin(ctx,900,568,meta.dark);animalIcon(ctx,post.animalKey,300,625,310,meta.color)
   ctx.fillStyle='#34322e';ctx.font=font(58,700,true);textBlock(ctx,post.hook,470,550,500,68,4)
   ctx.fillStyle=meta.dark;ctx.font=font(18,800);ctx.fillText(name,72,905);ctx.fillStyle='#34322e';ctx.font=font(28,520,true);textBlock(ctx,post.body,72,958,860,38,3)
-  if(post.years){ctx.fillStyle=meta.dark;ctx.font=font(15,800);ctx.fillText('AÑOS FRECUENTES',72,1110);ctx.fillStyle='#34322e';ctx.font=font(18,600);textBlock(ctx,post.years,72,1143,900,28,2)}
+  if(post.years){ctx.fillStyle=meta.dark;ctx.font=font(15,800);ctx.fillText(`ERES ${name} SI NACISTE EN:`,72,1110);ctx.fillStyle='#34322e';ctx.font=font(18,600);textBlock(ctx,post.years,72,1143,900,28,2)}
   footer(ctx,meta.dark)
 }
 
@@ -113,7 +113,7 @@ function drawWeek(ctx:CanvasRenderingContext2D,post:SocialPost){
   animalIcon(ctx,post.animalKey,370,560,120,'#f7f1e7')
   ctx.fillStyle=meta.dark;ctx.font=font(17,800);ctx.fillText(name,72,835)
   ctx.fillStyle='#34322e';ctx.font=font(58,700,true);textBlock(ctx,post.hook,72,910,900,68,4)
-  if(post.years){ctx.fillStyle=meta.dark;ctx.font=font(16,700);textBlock(ctx,`Años: ${post.years}`,72,1150,900,25,2)}
+  if(post.years){ctx.fillStyle=meta.dark;ctx.font=font(16,700);textBlock(ctx,`ERES ${name} SI NACISTE EN: ${post.years}`,72,1150,900,25,2)}
   footer(ctx,meta.dark)
 }
 
