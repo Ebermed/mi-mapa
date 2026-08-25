@@ -72,11 +72,14 @@ function brand(ctx:CanvasRenderingContext2D,color:string,series:string){ctx.fill
 function footer(ctx:CanvasRenderingContext2D,color:string){ctx.strokeStyle='rgba(62,54,47,.16)';ctx.beginPath();ctx.moveTo(72,1236);ctx.lineTo(1008,1236);ctx.stroke();ctx.fillStyle=color;ctx.textAlign='left';ctx.font=font(18,800);ctx.fillText('TU CARTA COMPLETA ES GRATIS',72,1275);ctx.textAlign='right';ctx.font=font(15,600);ctx.fillText('ebermed.github.io/mi-mapa  ↗',1008,1275)}
 
 function drawToday(ctx:CanvasRenderingContext2D,post:SocialPost){
-  const meta=elementMeta[post.palette];paper(ctx,post.palette);brand(ctx,meta.dark,post.eyebrow||'HOY')
+  const meta=elementMeta[post.palette],action=post.displayHook||post.title.replace(/^HOY ·\s*/,'')
+  paper(ctx,post.palette);brand(ctx,meta.dark,post.eyebrow||'HOY')
   ctx.fillStyle=meta.color;ctx.textAlign='left';ctx.font=font(220,800);ctx.fillText('HOY',62,302)
   route(ctx,meta.color,[[118,650],[300,730],[510,590],[760,720],[1010,610]])
   pin(ctx,150,633,meta.dark);animalIcon(ctx,post.animalKey,610,665,500,meta.color)
-  ctx.fillStyle='#313743';ctx.font=font(47,560,true);textBlock(ctx,post.displayHook||post.hook,72,1120,900,58,2)
+  ctx.fillStyle=meta.dark;ctx.font=font(22,800);ctx.fillText('ES UN BUEN DÍA PARA:',72,1008)
+  ctx.font=font(fit(ctx,action,900,78,52,900),900);ctx.fillText(action,72,1090)
+  ctx.fillStyle='#313743';ctx.font=font(25,520,true);textBlock(ctx,post.body,72,1140,900,32,2)
   footer(ctx,meta.dark)
 }
 
