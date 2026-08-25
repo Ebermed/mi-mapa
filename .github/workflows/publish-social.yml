@@ -55,7 +55,7 @@ jobs:
         if: steps.connection.outputs.ready == 'true'
         run: |
           pnpm install --frozen-lockfile
-          npm install --no-save sharp
+          pnpm add --save-prod sharp@0.34.4
       - name: Elegir serie
         if: steps.connection.outputs.ready == 'true'
         id: format
