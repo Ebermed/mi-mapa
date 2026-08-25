@@ -1,12 +1,15 @@
 # Instagram de MI MAPA
 
-1. Convierte la cuenta de Instagram en cuenta profesional y conéctala a una página de Facebook.
-2. En Meta for Developers crea una app con Instagram Graph API y genera un token de acceso para publicación de contenido.
-3. Copia el identificador de usuario de Instagram y el token.
-4. En GitHub abre **Settings → Secrets and variables → Actions** y crea:
+1. Convierte la cuenta de Instagram en cuenta profesional.
+2. En Meta for Developers crea una app Business y configura **Instagram API con inicio de sesión de empresa de Instagram**.
+3. En **Generar tokens de acceso**, agrega la cuenta y copia el identificador numérico que aparece bajo el usuario.
+4. Pulsa **Generar token**, autoriza `instagram_business_basic` e `instagram_business_content_publish` y copia el token.
+5. En GitHub abre **Settings → Secrets and variables → Actions** y crea:
    - `IG_USER_ID`
    - `IG_ACCESS_TOKEN`
-5. En **Actions → Fábrica de publicaciones MI MAPA → Run workflow**, elige `hoy` y ejecuta una prueba.
+6. En **Actions → Fábrica de publicaciones MI MAPA → Run workflow**, elige `hoy` y ejecuta una prueba.
+
+La publicación usa `graph.instagram.com`. La clave secreta de la app queda dentro de Meta y el workflow utiliza únicamente el identificador de la cuenta y su token.
 
 La fábrica permanece en pausa mientras faltan las dos llaves. Con ambas guardadas, sigue esta agenda en horario de Ciudad de México:
 
