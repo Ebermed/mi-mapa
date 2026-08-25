@@ -36,10 +36,10 @@ describe('cartas de referencia',()=>{
     const chart=calculateChart(fixtures.eber)
     const hour=pillarReading('hour',chart.pillars.hour)
     const year=pillarReading('year',{stem:'geng',branch:'dragon',hidden:['wu','yi','gui']})
-    expect(hour.headline).toBe('Qué estás construyendo')
+    expect(hour.headline).toBe('Tus planes y proyectos')
     expect(hour.body).not.toContain('Aquí aparece')
     expect(year.headline).toBe('De dónde vienes')
-    expect(year.body.startsWith('Bajo presión puedes volverte muy directo')).toBe(true)
+    expect(year.body.startsWith('Bajo presión puedes ser muy directo')).toBe(true)
   })
   it('mantiene abierta la hora y calcula la lectura con tres pilares',()=>{
     const complete=calculateChart(fixtures.eber)
@@ -62,7 +62,7 @@ describe('cartas de referencia',()=>{
     const clash=chart.interactions.find(item=>item.kind==='choque')!
     const reading=interactionReading(clash)
     expect(reading.title).toBe('Rata y Caballo son contrarios dentro de tu carta')
-    expect(reading.body).toContain('Tienes a ambos dentro de tu carta')
-    expect(reading.body).toContain('Eso significa que')
+    expect(reading.body).toContain('pueden llevarte a decisiones distintas')
+    expect(reading.body).toContain('Elegir qué asunto atender primero')
   })
 })
