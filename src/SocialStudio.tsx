@@ -34,7 +34,7 @@ export default function SocialStudio(){
   const selection=useMemo(()=>{
     if(format==='today'){
       const post=buildHoyPost(date)
-      return {post:{...post,format:'today',body:post.curiosity,detail:post.animal,animalKey:post.animalKey} as SocialPost,index:0,total:1}
+      return {post:{...post,format:'today',body:post.explanation,detail:post.animal,animalKey:post.animalKey} as SocialPost,index:0,total:1}
     }
     if(format==='center'){const index=randomIndex(stemOrder.length);return{post:centerPost(index),index,total:stemOrder.length}}
     if(format==='animal'){const index=randomIndex(branchOrder.length);return{post:animalPost(index),index,total:branchOrder.length}}
