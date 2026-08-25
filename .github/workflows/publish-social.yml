@@ -2,10 +2,10 @@ name: Fábrica de publicaciones MI MAPA
 
 on:
   schedule:
-    # 09:25 de Ciudad de México (UTC-6)
-    - cron: '25 15 * * *'
-    # 20:25 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
-    - cron: '25 2 * * 0,1,2,4,6'
+    # 09:25–09:40 de Ciudad de México (UTC-6): cuatro oportunidades por si GitHub retrasa una
+    - cron: '25,30,35,40 15 * * *'
+    # 20:25–20:40 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
+    - cron: '25,30,35,40 2 * * 0,1,2,4,6'
   workflow_dispatch:
     inputs:
       format:
@@ -50,11 +50,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Preparar generador
-        if: steps.connection.outputs.ready == 'true'
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm add --save-prod sharp@0.34.4
       - name: Elegir serie
         if: steps.connection.outputs.ready == 'true'
         id: format
@@ -64,11 +59,21 @@ jobs:
         run: |
           FORMAT="$MANUAL_FORMAT"
           IS_EVENING='false'
+          IS_SCHEDULED='false'
+          SLOT=''
+          SKIP='false'
+          LOCAL_DATE="$(TZ=America/Mexico_City date +%F)"
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '25 15 * * *') FORMAT='hoy' ;;
-              '25 2 * * 0,1,2,4,6')
+              '25,30,35,40 15 * * *')
+                FORMAT='hoy'
+                IS_SCHEDULED='true'
+                SLOT='hoy'
+                ;;
+              '25,30,35,40 2 * * 0,1,2,4,6')
                 IS_EVENING='true'
+                IS_SCHEDULED='true'
+                SLOT='noche'
                 STATE_FILE='public/social/state/last-evening-series.txt'
                 LAST=''
                 if [ -f "$STATE_FILE" ]; then
@@ -90,11 +95,27 @@ jobs:
                 ;;
             esac
           fi
+          if [ "$IS_SCHEDULED" = 'true' ]; then
+            DAILY_STATE="public/social/state/$SLOT-$LOCAL_DATE.txt"
+            if [ -f "$DAILY_STATE" ]; then
+              SKIP='true'
+              echo "La publicación automática de $SLOT ya salió el $LOCAL_DATE."
+            fi
+          fi
           echo "value=$FORMAT" >> "$GITHUB_OUTPUT"
           echo "is_evening=$IS_EVENING" >> "$GITHUB_OUTPUT"
+          echo "is_scheduled=$IS_SCHEDULED" >> "$GITHUB_OUTPUT"
+          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
+          echo "date=$LOCAL_DATE" >> "$GITHUB_OUTPUT"
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
           echo "Serie elegida: $FORMAT"
+      - name: Preparar generador
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm add --save-prod sharp@0.34.4
       - name: Generar imágenes
-        if: steps.connection.outputs.ready == 'true'
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
         env:
           FORMAT: ${{ steps.format.outputs.value }}
         run: |
@@ -109,7 +130,7 @@ jobs:
           }
           NODE
       - name: Guardar recursos públicos
-        if: steps.connection.outputs.ready == 'true'
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
         run: |
           git config user.name "mi-mapa-bot"
           git config user.email "actions@github.com"
@@ -122,10 +143,10 @@ jobs:
           git push
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Dar tiempo al recurso público
-        if: steps.connection.outputs.ready == 'true'
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
         run: sleep 12
       - name: Publicar en Instagram
-        if: steps.connection.outputs.ready == 'true'
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -180,7 +201,7 @@ jobs:
           fi
           curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
       - name: Publicar también en Facebook
-        if: steps.connection.outputs.ready == 'true'
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.skip != 'true'
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
@@ -211,15 +232,18 @@ jobs:
             done < <(jq -r '.items[]' "$META")
             curl --fail-with-body -sS -X POST "$GRAPH/$FB_PAGE_ID/feed" --data-urlencode "message=$CAPTION" "${ATTACHED_MEDIA[@]}" --data-urlencode "access_token=$FB_PAGE_ACCESS_TOKEN"
           fi
-      - name: Recordar última serie nocturna
-        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.is_evening == 'true'
+      - name: Guardar registro de publicación automática
+        if: steps.connection.outputs.ready == 'true' && steps.format.outputs.is_scheduled == 'true' && steps.format.outputs.skip != 'true'
         run: |
           mkdir -p public/social/state
-          printf '%s\n' "${{ steps.format.outputs.value }}" > public/social/state/last-evening-series.txt
-          git add public/social/state/last-evening-series.txt
+          printf '%s\n' "${{ steps.format.outputs.value }}" > "public/social/state/${{ steps.format.outputs.slot }}-${{ steps.format.outputs.date }}.txt"
+          if [ "${{ steps.format.outputs.is_evening }}" = 'true' ]; then
+            printf '%s\n' "${{ steps.format.outputs.value }}" > public/social/state/last-evening-series.txt
+          fi
+          git add public/social/state
           if git diff --cached --quiet; then
-            echo "La serie nocturna ya estaba registrada."
+            echo "La publicación automática ya estaba registrada."
           else
-            git commit -m "state: recordar serie nocturna ${{ steps.format.outputs.value }}"
+            git commit -m "state: registrar publicación ${{ steps.format.outputs.slot }} ${{ steps.format.outputs.date }}"
             git push
           fi
