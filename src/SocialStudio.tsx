@@ -58,6 +58,6 @@ export default function SocialStudio(){
         <button className="textButton" onClick={copyCaption}>{copied?'Texto copiado ✓':'Copiar caption'}</button>
       </aside>
     </section>
-    <p className="studioNote">La ruta del Estudio vive fuera de la navegación de MI MAPA.</p>
+    <p className="studioNote">El Estudio se abre únicamente desde su dirección directa.</p>
   </main>
 }
