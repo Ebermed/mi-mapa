@@ -116,18 +116,21 @@ jobs:
           CAPTION="$(jq -r .caption "$META")"
           COUNT="$(jq '.items | length' "$META")"
           BASE="https://raw.githubusercontent.com/Ebermed/mi-mapa/$sha/public/social/generated"
+          GRAPH="https://graph.instagram.com/$GRAPH_VERSION"
+          ACCOUNT="$(curl --fail-with-body -sS "$GRAPH/$IG_USER_ID" --get --data-urlencode 'fields=id,username' --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+          echo "Publicando en @$(jq -r .username <<< "$ACCOUNT")"
           if [ "$COUNT" -eq 1 ]; then
             FILE="$(jq -r '.items[0]' "$META")"
-            RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+            RESPONSE="$(curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
             CREATION_ID="$(jq -r .id <<< "$RESPONSE")"
           else
             CHILDREN=''
             while IFS= read -r FILE; do
-              RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "is_carousel_item=true" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+              RESPONSE="$(curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media" --data-urlencode "image_url=$BASE/$FILE" --data-urlencode "is_carousel_item=true" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
               ID="$(jq -r .id <<< "$RESPONSE")"
               CHILDREN="${CHILDREN:+$CHILDREN,}$ID"
             done < <(jq -r '.items[]' "$META")
-            RESPONSE="$(curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media" --data-urlencode "media_type=CAROUSEL" --data-urlencode "children=$CHILDREN" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+            RESPONSE="$(curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media" --data-urlencode "media_type=CAROUSEL" --data-urlencode "children=$CHILDREN" --data-urlencode "caption=$CAPTION" --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
             CREATION_ID="$(jq -r .id <<< "$RESPONSE")"
           fi
-          curl --fail-with-body -sS -X POST "https://graph.facebook.com/$GRAPH_VERSION/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
+          curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
