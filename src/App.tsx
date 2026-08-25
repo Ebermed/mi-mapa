@@ -15,6 +15,30 @@ type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; c
 type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
 
 const STORE='mi-mapa.library.v1'
+function useLiveToday(timezone:string){
+  const [today,setToday]=useState(()=>todayInZone(timezone))
+  useEffect(()=>{
+    let timer=0
+    const refresh=()=>{
+      window.clearTimeout(timer)
+      const current=todayInZone(timezone)
+      setToday(current)
+      const start=Date.now();let low=start,high=start+36*60*60*1000
+      while(high-low>1000){
+        const middle=Math.floor((low+high)/2)
+        if(todayInZone(timezone,new Date(middle))===current)low=middle
+        else high=middle
+      }
+      timer=window.setTimeout(refresh,Math.max(1000,high-Date.now()+250))
+    }
+    const resume=()=>{if(document.visibilityState==='visible')refresh()}
+    refresh()
+    window.addEventListener('focus',refresh)
+    document.addEventListener('visibilitychange',resume)
+    return()=>{window.clearTimeout(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',resume)}
+  },[timezone])
+  return today
+}
 const PILLAR_ORDER:PillarKey[]=['hour','day','month','year']
 const ELEMENT_ORDER:ElementKey[]=['wood','fire','earth','metal','water']
 type TechnicalPillarKey=PillarKey|AuxiliaryPillarKey
@@ -397,7 +421,7 @@ function drawActionsPoster(ctx:CanvasRenderingContext2D,chart:Chart){const meta=
 function drawTodayPoster(ctx:CanvasRenderingContext2D,chart:Chart,daily:ReturnType<typeof dayReading>){
   const meta=elementMeta[chart.dayMaster.element]
   ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(16,800);ctx.fillText(formatLongDate(daily.date).toUpperCase(),88,156)
-  ctx.font=posterFont(21,650,true);ctx.fillText('HOY ES UN DÍA PARA',88,208)
+  ctx.font=posterFont(21,650,true);ctx.fillText('HOY ES UN BUEN DÍA PARA',88,208)
   ctx.font=posterFont(fitPosterText(ctx,daily.rhythm.toUpperCase(),640,88,52),780,true);ctx.fillText(daily.rhythm.toUpperCase(),88,298)
   drawSeal(ctx,850,248,112,meta.color);drawAnimalPosterIcon(ctx,daily.pillar.branch,850,248,136,meta.dark)
   ctx.strokeStyle='rgba(60,50,42,.12)';ctx.beginPath();ctx.moveTo(88,360);ctx.lineTo(992,360);ctx.stroke()
@@ -498,7 +522,7 @@ function TemporalStrip({chart,onTool}:{chart:Chart;onTool:(view:View)=>void}){
   const today=todayInZone(chart.birth.timezone),daily=dayReading(chart,today),parts=partsFromKey(today),monthly=monthReading(chart,parts.year,parts.month)
   const cycle=chart.birth.sexAtBirth?cycleReading(chart,chart.birth.sexAtBirth).current:null
   return <section className="readingSection temporalStrip" id="ahora"><SectionHead kicker="TU MOMENTO ACTUAL" title="Cada fecha activa una oportunidad diferente."/><div className="temporalCards">
-    <button onClick={()=>onTool('today')}><AnimalGlyph branch={daily.pillar.branch}/><small>HOY</small><h3>{daily.rhythm}</h3><p>{daily.opportunity[0]} puede encontrar buen ritmo hoy.</p><span>Ver mi día →</span></button>
+    <button onClick={()=>onTool('today')}><AnimalGlyph branch={daily.pillar.branch}/><small>HOY</small><h3>{daily.rhythm}</h3><p>Hoy puede ser buen momento para {daily.opportunity[0]}.</p><span>Ver mi día →</span></button>
     <button onClick={()=>onTool('calendar')}><span className="cycleMark">▦</span><small>CALENDARIO</small><h3>Encuentra una fecha</h3><p>Explora cualquier día o busca cuándo conviene hacer algo concreto.</p><span>Abrir calendario →</span></button>
     <button onClick={()=>onTool('month')}><Glyph stem={monthly.pillar.stem} size={54}/><small>ESTE MES</small><h3>{monthly.area.title}</h3><p>{monthly.headline}</p><span>Ver mi mes →</span></button>
     <button onClick={()=>onTool('cycles')}><span className="cycleMark">↻</span><small>MI CICLO</small><h3>{cycle?cycle.title:'Tu etapa actual'}</h3><p>Cada diez años comienza una etapa con prioridades diferentes.</p><span>Ver mis ciclos →</span></button>
@@ -519,15 +543,26 @@ function PersonalClashNotice({reading,compact=false}:{reading:ReturnType<typeof 
 }
 
 function TodayPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolPageProps){
-  const [selected,setSelected]=useState(()=>{const requested=new URLSearchParams(location.search).get('fecha');return requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:todayInZone(chart.birth.timezone)}),reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
-  const today=todayInZone(chart.birth.timezone)
-  useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url)},[selected])
+  const today=useLiveToday(chart.birth.timezone)
+  const initial=useMemo(()=>{
+    const params=new URLSearchParams(location.search),requested=params.get('fecha'),fromCalendar=params.get('origen')==='calendario'
+    return {date:fromCalendar&&requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:today,follow:!fromCalendar}
+  },[])
+  const [selected,setSelected]=useState(initial.date),[followsToday,setFollowsToday]=useState(initial.follow)
+  const reading=useMemo(()=>dayReading(chart,selected),[chart,selected])
+  useEffect(()=>{if(followsToday)setSelected(today)},[today,followsToday])
+  useEffect(()=>{
+    const url=new URL(location.href)
+    if(followsToday){url.searchParams.delete('fecha');url.searchParams.delete('origen')}
+    else{url.searchParams.set('fecha',selected);url.searchParams.set('origen','calendario')}
+    history.replaceState({},'',url)
+  },[selected,followsToday])
   return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="today" onTool={onTool}/>
     <section className="timeHero"><div><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1>{reading.headline}</h1><p>{reading.body} {reading.personal}</p><div className="timeHeroMeta"><Technical>{branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].label}</Technical><AnimalGlyph branch={reading.pillar.branch} size={64}/></div></div></section>
     <PersonalClashNotice reading={reading}/>
-    <section className="dayActions"><article><small>APROVECHA EL DÍA PARA</small><h2>Tres cosas que pueden fluir mejor</h2><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></article><article><small>DEJA UN POCO MÁS DE MARGEN EN</small><h2>Dos decisiones para llevar con calma</h2><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></article></section>
+    <section className="dayActions"><article><small>APROVECHA EL DÍA PARA</small><h2>Tres cosas que pueden ayudarte</h2><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></article><article><small>DEJA UN POCO MÁS DE MARGEN EN</small><h2>Dos decisiones para llevar con calma</h2><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></article></section>
     <section className="todayShare"><div><p className="eyebrow">LLÉVATE TU DÍA</p><h2>Compártelo o guárdalo para tenerlo a la mano.</h2></div><div className="shareActions"><ShareButton kind="today" chart={chart} date={selected}>Compartir mi día</ShareButton><ShareButton kind="today" chart={chart} date={selected} downloadOnly>Descargar</ShareButton></div></section>
-    <section className="calendarBridge"><span className="cycleMark">▦</span><div><p className="eyebrow">¿QUIERES VER OTRA FECHA?</p><h2>Explora el calendario completo.</h2><p>Mira cualquier día, recorre el mes o busca las mejores fechas para una actividad concreta.</p></div><button className="primary" onClick={()=>onTool('calendar')}>Abrir calendario <span>→</span></button>{selected!==today&&<button className="quietButton" onClick={()=>setSelected(today)}>Volver a hoy</button>}</section>
+    <section className="calendarBridge"><span className="cycleMark">▦</span><div><p className="eyebrow">¿QUIERES VER OTRA FECHA?</p><h2>Explora el calendario completo.</h2><p>Mira cualquier día, recorre el mes o busca las mejores fechas para una actividad concreta.</p></div><button className="primary" onClick={()=>onTool('calendar')}>Abrir calendario <span>→</span></button>{selected!==today&&<button className="quietButton" onClick={()=>{setFollowsToday(true);setSelected(today)}}>Volver a hoy</button>}</section>
   </main>
 }
 
@@ -535,7 +570,7 @@ type CalendarMode='day'|'month'|'search'
 function CalendarModes({mode,onChange}:{mode:CalendarMode;onChange:(mode:CalendarMode)=>void}){return <nav className="calendarModes" aria-label="Vistas del calendario"><button aria-current={mode==='day'?'page':undefined} onClick={()=>onChange('day')}>Día</button><button aria-current={mode==='month'?'page':undefined} onClick={()=>onChange('month')}>Mes</button><button aria-current={mode==='search'?'page':undefined} onClick={()=>onChange('search')}>Buscar fecha</button></nav>}
 
 function CalendarPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolPageProps){
-  const params=useMemo(()=>new URLSearchParams(location.search),[]),today=todayInZone(chart.birth.timezone)
+  const params=useMemo(()=>new URLSearchParams(location.search),[]),today=useLiveToday(chart.birth.timezone)
   const requested=params.get('fecha'),initialDate=requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)?requested:today
   const requestedMode=params.get('modo'),[mode,setMode]=useState<CalendarMode>(requestedMode==='mes'?'month':requestedMode==='buscar'?'search':'day')
   const [selected,setSelected]=useState(initialDate),[activity,setActivity]=useState<ActivityKey>(()=>{const value=params.get('actividad') as ActivityKey;return value&&activities[value]?value:'finances'})
@@ -547,9 +582,9 @@ function CalendarPage({chart,library,active,onSwitch,onHome,onReading,onTool}:To
   const detailReading=detail?classifyActivity(chart,detail,activity):null
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);url.searchParams.set('modo',mode==='month'?'mes':mode==='search'?'buscar':'dia');url.searchParams.set('actividad',activity);url.searchParams.set('anio',String(searchYear));history.replaceState({},'',url)},[selected,mode,activity,searchYear])
   const moveMonth=(delta:number)=>{const d=new Date(Date.UTC(parts.year,parts.month-1+delta,1));setSelected(dateKey(d.getUTCFullYear(),d.getUTCMonth()+1,1))}
-  const openToday=()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);history.replaceState({},'',url);onTool('today')}
+  const openToday=()=>{const url=new URL(location.href);url.searchParams.set('fecha',selected);url.searchParams.set('origen','calendario');history.replaceState({},'',url);onTool('today')}
   return <main className="toolPage calendarPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="calendar" onTool={onTool}/>
-    <header className="calendarIntro"><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1 key={mode}>{mode==='search'?'¿Cuándo te conviene?':'Explora una fecha a la vez.'}</h1><p>Cada día combina su propio ritmo con la carta que elegiste arriba.</p><CalendarModes mode={mode} onChange={value=>{setMode(value);setDetail('')}}/></header>
+    <header className="calendarIntro"><p className="eyebrow">TU CALENDARIO PERSONAL</p><h1 key={mode}>{mode==='search'?'¿Cuándo te conviene?':'Explora una fecha a la vez.'}</h1><p>Cada fecha tiene usos distintos según la carta que elegiste arriba.</p><CalendarModes mode={mode} onChange={value=>{setMode(value);setDetail('')}}/></header>
     {mode==='day'&&<section className="calendarDayView calendarModeEnter" key={`day-${selected}`}><nav className="dayStepper"><button onClick={()=>setSelected(shiftDate(selected,-1))} aria-label="Día anterior">←</button>{selected===today?<span className="todayStatus">HOY</span>:<button className="goToday" onClick={()=>setSelected(today)}>Ir a hoy</button>}<button onClick={()=>setSelected(shiftDate(selected,1))} aria-label="Día siguiente">→</button></nav><article className="dayCard calendarSwap"><p className="eyebrow">{formatLongDate(selected).toUpperCase()}</p><div className="dayCardIdentity"><AnimalGlyph branch={reading.pillar.branch} size={96}/><div><h2>{reading.rhythm}</h2><span>{dayScoreLabel(reading.score)}</span></div></div><p className="dayLead">{reading.body} {reading.personal}</p><PersonalClashNotice reading={reading} compact/><div className="scoreTrack"><i style={{width:`${reading.score}%`}}/></div><div className="dayCardLists"><div><small>PUEDE FLUIR MEJOR</small><ul>{reading.opportunity.map(item=><li key={item}>{item}</li>)}</ul></div><div><small>LLÉVALO CON MÁS MARGEN</small><ul>{reading.margin.map(item=><li key={item}>{item}</li>)}</ul></div></div><button className="primary" onClick={openToday}>Ver la lectura completa de este día <span>→</span></button></article></section>}
     {mode==='month'&&<section className="calendarMonthView calendarModeEnter" key={`month-${parts.year}-${parts.month}`}><header className="periodNav"><button onClick={()=>moveMonth(-1)} aria-label="Mes anterior">←</button><h2>{monthLabel(parts.year,parts.month)}</h2><button onClick={()=>moveMonth(1)} aria-label="Mes siguiente">→</button></header><div className="calendarGrid calendarGridScores">{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:offset},(_,i)=><i key={`empty-${i}`}/>) }{Array.from({length:days},(_,index)=>{const key=dateKey(parts.year,parts.month,index+1),day=dayReading(chart,key);return <button key={key} className={`calendarCellIn ${key===selected?'selected ':''}${key===today?'today ':''}${day.personalClash.active?'personalClashDay':''}`} style={{animationDelay:`${Math.min(index*14,360)}ms`} as CSSProperties} onClick={()=>{setSelected(key);setMode('day')}} aria-label={`${formatLongDate(key)}. ${dayScoreLabel(day.score)}${day.personalClash.active?'. Día de choque personal':''}`}><b>{index+1}</b><AnimalGlyph branch={day.pillar.branch} size={28}/><span className="dayScoreDot" style={{'--score':day.score/100} as CSSProperties}/><small>{day.personalClash.active?'CHOQUE':day.rhythm}</small></button>})}</div></section>}
     {mode==='search'&&<section className="dateSearch calendarModeEnter" key={`search-${searchYear}-${activity}`}><article className="searchControls"><div><p className="eyebrow">BUSCA UNA FECHA</p><h2>¿Qué quieres hacer?</h2></div><label>Actividad<select value={activity} onChange={event=>{setActivity(event.target.value as ActivityKey);setDetail('')}}>{Object.entries(activities).map(([key,item])=><option value={key} key={key}>{item.name}</option>)}</select><small>{activities[activity].help}</small></label><div className="searchYear"><button onClick={()=>setSearchYear(value=>value-1)} aria-label="Año anterior">←</button><b>{searchYear}</b><button onClick={()=>setSearchYear(value=>value+1)} aria-label="Año siguiente">→</button></div><button className="quietButton" onClick={()=>setSearchYear(partsFromKey(today).year)}>Este año</button></article><div className="searchSummary"><span><b>{counts.good}</b>Buen encaje</span><span><b>{counts.move}</b>Mejor moverlo</span><span><b>{counts.neutral}</b>Neutral</span></div><p className="searchHint">Toca cualquier fecha para revisar por qué cayó en ese resultado.</p><div className="yearCalendars">{Array.from({length:12},(_,monthIndex)=>{const month=monthIndex+1,monthDays=new Date(Date.UTC(searchYear,month,0)).getUTCDate(),monthOffset=new Date(Date.UTC(searchYear,month-1,1)).getUTCDay();return <article className="miniMonth" key={month} style={{animationDelay:`${monthIndex*38}ms`}}><h3>{monthLabel(searchYear,month).replace(` ${searchYear}`,'')}</h3><div>{['D','L','M','M','J','V','S'].map((day,index)=><small key={`${day}-${index}`}>{day}</small>)}{Array.from({length:monthOffset},(_,i)=><i key={i}/>)}{Array.from({length:monthDays},(_,index)=>{const key=dateKey(searchYear,month,index+1),result=resultMap.get(key);return <button key={key} className={`${result?.state||'neutral'} ${detail===key?'selected ':''}${result?.reading.personalClash.active?'personalClashDay':''}`} onClick={()=>setDetail(key)} aria-label={`${index+1} de ${monthLabel(searchYear,month)}. ${result?.state==='good'?'Buen encaje':result?.state==='move'?'Mejor moverlo':'Neutral'}${result?.reading.personalClash.active?'. Día de choque personal':''}`}>{index+1}</button>})}</div></article>})}</div>{detailReading&&<aside className={`searchDetail ${detailReading.state}`}><button onClick={()=>setDetail('')} aria-label="Cerrar detalle">×</button><p className="eyebrow">{detailReading.reading.personalClash.active?'DÍA DE CHOQUE PERSONAL':detailReading.state==='good'?'BUEN ENCAJE':detailReading.state==='move'?'MEJOR MOVERLO':'FECHA NEUTRAL'}</p><h2>{formatLongDate(detail)}</h2><p>{detailReading.reason}</p><small>{detailReading.reading.rhythm} · {branches[detailReading.reading.pillar.branch].label}</small><button className="primary" onClick={()=>{setSelected(detail);setMode('day')}}>Ver este día <span>→</span></button></aside>}</section>}
@@ -560,7 +595,7 @@ function MonthPage({chart,library,active,onSwitch,onHome,onReading,onTool}:ToolP
   const now=partsFromKey(todayInZone(chart.birth.timezone)),[period,setPeriod]=useState(()=>{const requested=new URLSearchParams(location.search).get('periodo');if(requested&&/^\d{4}-\d{2}$/.test(requested)){const [year,month]=requested.split('-').map(Number);return {year,month}}return {year:now.year,month:now.month}}),reading=useMemo(()=>monthReading(chart,period.year,period.month),[chart,period])
   const move=(delta:number)=>{const d=new Date(Date.UTC(period.year,period.month-1+delta,15));setPeriod({year:d.getUTCFullYear(),month:d.getUTCMonth()+1})}
   useEffect(()=>{const url=new URL(location.href);url.searchParams.set('periodo',`${period.year}-${String(period.month).padStart(2,'0')}`);history.replaceState({},'',url)},[period])
-  const openDay=(key:string)=>{const url=new URL(location.href);url.searchParams.set('fecha',key);history.replaceState({},'',url);onTool('today')}
+  const openDay=(key:string)=>{const url=new URL(location.href);url.searchParams.set('fecha',key);url.searchParams.set('origen','calendario');history.replaceState({},'',url);onTool('today')}
   return <main className="toolPage"><ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/><ToolTabs current="month" onTool={onTool}/>
     <section className="timeHero monthHero"><div><p className="eyebrow">TU MES · {monthLabel(period.year,period.month)}</p><h1>{reading.headline}</h1><p>{reading.area.intro} {reading.personal}</p><div className="timeHeroMeta"><Technical>{identityMeta[reading.pillar.stem].name} · {branches[reading.pillar.branch].label} · {stems[reading.pillar.stem].han} {stems[reading.pillar.stem].label}</Technical><Glyph stem={reading.pillar.stem} size={64}/></div></div></section>
     <div className="periodNav"><button onClick={()=>move(-1)}>← Mes anterior</button><button onClick={()=>setPeriod({year:now.year,month:now.month})}>Este mes</button><button onClick={()=>move(1)}>Mes siguiente →</button></div>
