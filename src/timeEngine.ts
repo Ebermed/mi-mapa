@@ -23,7 +23,7 @@ export const activities:Record<ActivityKey,{name:string;help:string;good:string[
   purchase:{name:'Hacer una compra importante',help:'Compras planeadas, comparación de precios y uso de presupuesto.',good:['Afianzar','Consolidar','Revisar'],move:['Desmontar','Descansar']},
   agreement:{name:'Firmar o negociar un acuerdo',help:'Contratos, condiciones, propuestas, permisos y negociación.',good:['Ajustar','Afianzar','Consolidar'],move:['Desmontar','Descansar']},
   launch:{name:'Lanzar, publicar o presentar',help:'Presentaciones, publicaciones, campañas y visibilidad.',good:['Mostrar','Consolidar','Ejecutar'],move:['Descansar','Desmontar','Revisar']},
-  project:{name:'Iniciar o mover un proyecto',help:'Primeras reuniones, líneas de trabajo, proyectos y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Descansar','Desmontar']},
+  project:{name:'Iniciar o retomar un proyecto',help:'Primeras reuniones, planificación, tareas pendientes y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Descansar','Desmontar']},
   responsibility:{name:'Asumir más responsabilidad',help:'Promociones, nuevas responsabilidades, coordinación y trabajo.',good:['Afianzar','Consolidar','Ajustar'],move:['Revisar','Descansar']},
   study:{name:'Estudiar o iniciar un curso',help:'Estudio, investigación, escritura, cursos y preparación.',good:['Arrancar','Revisar','Afianzar'],move:['Desmontar']},
   travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con margen.',good:['Ejecutar','Mostrar','Arrancar'],move:['Descansar','Desmontar']},
@@ -50,11 +50,11 @@ const DAY_RHYTHMS=[
 const generates:Record<ElementKey,ElementKey>={wood:'fire',fire:'earth',earth:'metal',metal:'water',water:'wood'}
 const controls:Record<ElementKey,ElementKey>={wood:'earth',earth:'water',water:'fire',fire:'metal',metal:'wood'}
 const AREAS={
-  peers:{title:'Vínculos',theme:'personas, acuerdos y límites',intro:'Las relaciones y el reparto de responsabilidades ganan presencia.',actions:['pedir con claridad lo que necesitas','acordar responsabilidades antes de asumirlas','elegir vínculos donde el apoyo circule en ambos sentidos'],care:'Repartir tu atención entre demasiadas personas puede quitar espacio a tus propias prioridades.'},
-  output:{title:'Expresión',theme:'ideas, producción y visibilidad',intro:'Las ideas buscan convertirse en algo visible y compartible.',actions:['terminar una pieza antes de abrir otro frente','mostrar una versión clara y aprender de la respuesta','reservar tiempo para sostener lo que publiques'],care:'El entusiasmo puede abrir más proyectos de los que tu calendario alcanza a sostener.'},
-  resources:{title:'Recursos',theme:'dinero, intercambio y resultados',intro:'Los recursos y los resultados concretos piden decisiones claras.',actions:['poner números y condiciones antes de comprometerte','cerrar fugas pequeñas de tiempo o dinero','convertir una oportunidad en un plan con fecha'],care:'Una oportunidad atractiva puede crecer demasiado rápido cuando falta una medida clara de tiempo, dinero o energía.'},
-  structure:{title:'Estructura',theme:'responsabilidades, reglas y prioridades',intro:'Las responsabilidades y los plazos ganan volumen.',actions:['separar obligación real de presión aprendida','poner estructura a una prioridad','responder desde tu criterio frente a cada exigencia'],care:'Tratar cada expectativa como urgente puede convertir la estructura en presión acumulada.'},
-  support:{title:'Perspectiva',theme:'aprendizaje, apoyo e información',intro:'La información y el apoyo pueden cambiar la forma de entender un problema.',actions:['buscar una fuente o persona con experiencia','darle tiempo a la información para acomodarse','convertir lo aprendido en una acción comprobable'],care:'Revisar demasiados escenarios puede consumir el momento que también necesita una decisión.'},
+  peers:{title:'Vínculos',theme:'personas, acuerdos y responsabilidades',intro:'Este mes conviene revisar acuerdos y repartir responsabilidades con claridad.',actions:['pedir con claridad lo que necesitas','definir quién hará cada tarea','reservar tiempo para tus propias prioridades'],care:'Aceptar demasiados compromisos puede dejar pendientes importantes sin atender.'},
+  output:{title:'Expresión',theme:'proyectos, entregas y comunicación',intro:'Este mes conviene terminar, presentar y compartir tu trabajo.',actions:['terminar una pieza antes de iniciar otra','mostrar una versión clara y pedir comentarios','reservar tiempo para responder después de publicar'],care:'Empezar varios proyectos a la vez puede retrasar las entregas.'},
+  resources:{title:'Recursos',theme:'dinero, intercambios y resultados',intro:'Este mes conviene revisar ingresos, gastos y condiciones antes de decidir.',actions:['poner números y condiciones por escrito','detectar gastos pequeños que se repiten','asignar una fecha y un presupuesto a cada oportunidad'],care:'Una oportunidad puede exigir más tiempo o dinero del que parece al principio.'},
+  structure:{title:'Estructura',theme:'responsabilidades, reglas y prioridades',intro:'Este mes conviene ordenar responsabilidades, reglas y fechas de entrega.',actions:['distinguir una obligación de una expectativa ajena','elegir una prioridad y asignarle tiempo','preguntar qué resultado esperan antes de aceptar una tarea'],care:'Tratar cada solicitud como urgente puede saturar tu agenda.'},
+  support:{title:'Perspectiva',theme:'aprendizaje, apoyo e información',intro:'Este mes conviene pedir información, estudiar y consultar a alguien con experiencia.',actions:['buscar una fuente o persona con experiencia','anotar la información que cambia tu decisión','probar lo aprendido en una tarea concreta'],care:'Revisar demasiadas opciones puede retrasar una decisión sencilla.'},
 }
 
 function pad(value:number){return String(value).padStart(2,'0')}
@@ -84,12 +84,12 @@ function branchConnection(visitor:BranchKey,chart:Chart){
   const dayLabel=branches[visitor].label
   for(const [key,pillar] of (Object.entries(chart.pillars) as [PillarKey,Pillar][]).filter(([key])=>!(chart.birth.timeUnknown&&key==='hour'))){
     const area=key==='year'?'tu año':key==='month'?'tu manera de avanzar':key==='day'?'tu centro':'tus proyectos'
-    if(pillar.branch===visitor)return `El ${dayLabel} del día también aparece en ${area}; esta recomendación puede resultarte especialmente familiar.`
+    if(pillar.branch===visitor)return `El ${dayLabel} del día también aparece en ${area}. La recomendación puede resultarte familiar.`
     const match=pairs.find(([pair])=>pair.includes(visitor)&&pair.includes(pillar.branch))
-    if(match?.[1]==='support')return `El ${dayLabel} del día combina bien con el animal de ${area}; las tareas compartidas pueden avanzar con mayor facilidad.`
-    if(match?.[1]==='clash')return `El ${dayLabel} del día es opuesto al animal de ${area}; deja espacio para cambios de plan y revisa antes de decidir.`
+    if(match?.[1]==='support')return `El ${dayLabel} del día combina con el animal de ${area}. Las reuniones y tareas compartidas pueden resultar más sencillas.`
+    if(match?.[1]==='clash')return `El ${dayLabel} del día es opuesto al animal de ${area}. Revisa horarios y acuerdos porque pueden surgir cambios de plan.`
   }
-  return `El ${dayLabel} del día aporta una forma de actuar distinta a las que aparecen en tu carta. Prueba la recomendación en una tarea concreta.`
+  return ''
 }
 
 const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
@@ -98,7 +98,7 @@ const harmonies:Record<BranchKey,BranchKey>={rat:'ox',ox:'rat',tiger:'pig',pig:'
 export function personalClashReading(chart:Chart,dayBranch:BranchKey):PersonalClash{
   const birthBranch=chart.pillars.year.branch,active=clashes[birthBranch]===dayBranch
   const dayLabel=branches[dayBranch].label,birthLabel=branches[birthBranch].label
-  return {active,birthBranch,dayBranch,title:active?`${dayLabel} choca con ${birthLabel}`:'',body:active?`${dayLabel} y ${birthLabel}, el animal de tu año, son opuestos. Este día puede traer cambios, contratiempos o planes que se mueven de forma inesperada. Conviene dejar margen, revisar dos veces y reservar las decisiones de largo plazo para otra fecha.`:''}
+  return {active,birthBranch,dayBranch,title:active?`${dayLabel} choca con ${birthLabel}`:'',body:active?`${dayLabel} y ${birthLabel}, el animal de tu año, son opuestos. Este día puede traer cambios de horario, retrasos o diferencias de opinión. Conviene revisar dos veces y reservar las decisiones de largo plazo para otra fecha.`:''}
 }
 
 function personalScore(day:BranchKey,chart:Chart){
@@ -125,13 +125,13 @@ export function generalDayReading(key:string){
   return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin}
 }
 
-export function dayScoreLabel(score:number){if(score>=75)return 'Buen día para avanzar';if(score>=60)return 'Puede ayudarte a moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Conviene dejar más margen'}
+export function dayScoreLabel(score:number){if(score>=75)return 'Fecha recomendada';if(score>=60)return 'Fecha adecuada';if(score>=45)return 'Revisa antes de decidir';return 'Conviene elegir otra fecha'}
 
 export function classifyActivity(chart:Chart,key:string,activity:ActivityKey):ActivityResult{
   const reading=dayReading(chart,key),rule=activities[activity]
   const supports=rule.good.includes(reading.rhythm),slows=rule.move.includes(reading.rhythm)
   const state:ActivityResult['state']=reading.personalClash.active||slows||reading.score<42?'move':supports&&reading.score>=58?'good':'neutral'
-  const baseReason=state==='good'?`${reading.rhythm} acompaña esta actividad y la fecha tiene buen margen para tu carta.`:state==='move'?`${reading.rhythm} pide más preparación para esta actividad y tu carta agradece margen de maniobra.`:`La fecha reúne señales mixtas para esta actividad. Puedes usarla si mantienes el plan flexible.`
+  const baseReason=state==='good'?`La recomendación del día coincide con esta actividad y la fecha obtiene una valoración favorable para tu carta.`:state==='move'?`La recomendación del día prioriza otras actividades. Busca otra fecha cuando puedas.`:`La fecha puede funcionar. Define horarios, presupuesto y responsables antes de empezar.`
   const reason=reading.personalClash.active?`${baseReason} Además, es tu día de choque personal: ${reading.personalClash.title}.`:baseReason
   return {date:key,state,reading,reason}
 }
@@ -154,7 +154,7 @@ export function monthReading(chart:Chart,year:number,month:number){
   const key=dateKey(year,month,15),pillar=transitPillars(key).month,area=areaFor(chart.dayMaster.element,stems[pillar.stem].element)
   const days=Array.from({length:new Date(Date.UTC(year,month,0)).getUTCDate()},(_,index)=>dayReading(chart,dateKey(year,month,index+1)))
   const featured=[...days].sort((a,b)=>b.score-a.score).slice(0,3)
-  return {year,month,pillar,area,days,featured,headline:`Este ${MONTHS[month-1]} te trae más movimiento en ${area.theme}.`,personal:branchConnection(pillar.branch,chart)}
+  return {year,month,pillar,area,days,featured,headline:`En ${MONTHS[month-1]}, conviene atender ${area.theme}.`,personal:branchConnection(pillar.branch,chart)}
 }
 
 export type CycleItem={startDate:string;endDate:string;startYear:number;endYear:number;startAge:number;endAge:number;pillar:Pillar;current:boolean;title:string;body:string;focus:string}
