@@ -18,17 +18,17 @@ export type PersonalClash={active:boolean;birthBranch:BranchKey;dayBranch:Branch
 
 export type ActivityKey='finances'|'collect'|'purchase'|'agreement'|'launch'|'project'|'responsibility'|'study'|'travel'|'negotiate'|'social'|'close'
 export const activities:Record<ActivityKey,{name:string;help:string;good:string[];move:string[]}>= {
-  finances:{name:'Dinero y finanzas',help:'Pagos, presupuesto, ventas, compras planeadas y decisiones de recursos.',good:['Reunir','Captar','Consolidar','Afianzar'],move:['Desmontar','Pausa']},
-  collect:{name:'Cobrar o recibir un pago',help:'Cobros pendientes, compensaciones y entradas de dinero.',good:['Captar','Reunir','Consolidar'],move:['Pausa','Revisar']},
-  purchase:{name:'Hacer una compra importante',help:'Compras planeadas, comparación de precios y uso de presupuesto.',good:['Afianzar','Consolidar','Revisar'],move:['Desmontar','Pausa']},
-  agreement:{name:'Firmar o negociar un acuerdo',help:'Contratos, condiciones, propuestas, permisos y negociación.',good:['Ajustar','Afianzar','Consolidar'],move:['Desmontar','Pausa']},
-  launch:{name:'Lanzar, publicar o presentar',help:'Presentaciones, publicaciones, campañas y visibilidad.',good:['Mostrar','Consolidar','Ejecutar'],move:['Pausa','Desmontar','Revisar']},
-  project:{name:'Iniciar o mover un proyecto',help:'Primeras reuniones, líneas de trabajo, proyectos y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Pausa','Desmontar']},
-  responsibility:{name:'Asumir más responsabilidad',help:'Promociones, nuevas responsabilidades, coordinación y trabajo.',good:['Afianzar','Consolidar','Ajustar'],move:['Revisar','Pausa']},
+  finances:{name:'Dinero y finanzas',help:'Pagos, presupuesto, ventas, compras planeadas y decisiones de recursos.',good:['Reunir','Recibir','Consolidar','Afianzar'],move:['Desmontar','Descansar']},
+  collect:{name:'Cobrar o recibir un pago',help:'Cobros pendientes, compensaciones y entradas de dinero.',good:['Recibir','Reunir','Consolidar'],move:['Descansar','Revisar']},
+  purchase:{name:'Hacer una compra importante',help:'Compras planeadas, comparación de precios y uso de presupuesto.',good:['Afianzar','Consolidar','Revisar'],move:['Desmontar','Descansar']},
+  agreement:{name:'Firmar o negociar un acuerdo',help:'Contratos, condiciones, propuestas, permisos y negociación.',good:['Ajustar','Afianzar','Consolidar'],move:['Desmontar','Descansar']},
+  launch:{name:'Lanzar, publicar o presentar',help:'Presentaciones, publicaciones, campañas y visibilidad.',good:['Mostrar','Consolidar','Ejecutar'],move:['Descansar','Desmontar','Revisar']},
+  project:{name:'Iniciar o mover un proyecto',help:'Primeras reuniones, líneas de trabajo, proyectos y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Descansar','Desmontar']},
+  responsibility:{name:'Asumir más responsabilidad',help:'Promociones, nuevas responsabilidades, coordinación y trabajo.',good:['Afianzar','Consolidar','Ajustar'],move:['Revisar','Descansar']},
   study:{name:'Estudiar o iniciar un curso',help:'Estudio, investigación, escritura, cursos y preparación.',good:['Arrancar','Revisar','Afianzar'],move:['Desmontar']},
-  travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con margen.',good:['Ejecutar','Mostrar','Arrancar'],move:['Pausa','Desmontar']},
-  negotiate:{name:'Pedir apoyo o negociar',help:'Apoyos, permisos, colaboración y conversaciones con acuerdos.',good:['Ajustar','Captar','Reunir'],move:['Desmontar','Pausa']},
-  social:{name:'Reunirte y conectar con gente',help:'Reuniones, celebraciones, convocatorias y colaboración.',good:['Reunir','Mostrar','Captar'],move:['Pausa','Desmontar']},
+  travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con margen.',good:['Ejecutar','Mostrar','Arrancar'],move:['Descansar','Desmontar']},
+  negotiate:{name:'Pedir apoyo o negociar',help:'Apoyos, permisos, colaboración y conversaciones con acuerdos.',good:['Ajustar','Recibir','Reunir'],move:['Desmontar','Descansar']},
+  social:{name:'Reunirte y conectar con gente',help:'Reuniones, celebraciones, convocatorias y colaboración.',good:['Reunir','Mostrar','Recibir'],move:['Descansar','Desmontar']},
   close:{name:'Cerrar, cancelar o depurar',help:'Terminar pendientes, recortar, cancelar y cerrar procesos.',good:['Desmontar','Depurar','Consolidar'],move:['Arrancar','Reunir']},
 }
 export type ActivityResult={date:string;state:'good'|'move'|'neutral';reading:DayReading;reason:string}
