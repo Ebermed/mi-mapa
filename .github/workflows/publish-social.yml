@@ -179,6 +179,38 @@ jobs:
             wait_for_container "$CREATION_ID"
           fi
           curl --fail-with-body -sS -X POST "$GRAPH/$IG_USER_ID/media_publish" --data-urlencode "creation_id=$CREATION_ID" --data-urlencode "access_token=$IG_ACCESS_TOKEN"
+      - name: Publicar también en Facebook
+        if: steps.connection.outputs.ready == 'true'
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v23.0' }}
+        run: |
+          if [ -z "$FB_PAGE_ID" ] || [ -z "$FB_PAGE_ACCESS_TOKEN" ]; then
+            echo "Facebook queda en espera hasta guardar FB_PAGE_ID y FB_PAGE_ACCESS_TOKEN."
+            exit 0
+          fi
+          META='public/social/generated/post.json'
+          CAPTION="$(jq -r .caption "$META")"
+          COUNT="$(jq '.items | length' "$META")"
+          BASE="https://raw.githubusercontent.com/Ebermed/mi-mapa/$sha/public/social/generated"
+          GRAPH="https://graph.facebook.com/$GRAPH_VERSION"
+          PAGE="$(curl --fail-with-body -sS "$GRAPH/$FB_PAGE_ID" --get --data-urlencode 'fields=id,name' --data-urlencode "access_token=$FB_PAGE_ACCESS_TOKEN")"
+          echo "Publicando en Facebook: $(jq -r .name <<< "$PAGE")"
+          if [ "$COUNT" -eq 1 ]; then
+            FILE="$(jq -r '.items[0]' "$META")"
+            curl --fail-with-body -sS -X POST "$GRAPH/$FB_PAGE_ID/photos" --data-urlencode "url=$BASE/$FILE" --data-urlencode "message=$CAPTION" --data-urlencode "access_token=$FB_PAGE_ACCESS_TOKEN"
+          else
+            ATTACHED_MEDIA=()
+            INDEX=0
+            while IFS= read -r FILE; do
+              RESPONSE="$(curl --fail-with-body -sS -X POST "$GRAPH/$FB_PAGE_ID/photos" --data-urlencode "url=$BASE/$FILE" --data-urlencode 'published=false' --data-urlencode "access_token=$FB_PAGE_ACCESS_TOKEN")"
+              MEDIA_ID="$(jq -r .id <<< "$RESPONSE")"
+              ATTACHED_MEDIA+=(--data-urlencode "attached_media[$INDEX]={\"media_fbid\":\"$MEDIA_ID\"}")
+              INDEX=$((INDEX + 1))
+            done < <(jq -r '.items[]' "$META")
+            curl --fail-with-body -sS -X POST "$GRAPH/$FB_PAGE_ID/feed" --data-urlencode "message=$CAPTION" "${ATTACHED_MEDIA[@]}" --data-urlencode "access_token=$FB_PAGE_ACCESS_TOKEN"
+          fi
       - name: Recordar última serie nocturna
         if: steps.connection.outputs.ready == 'true' && steps.format.outputs.is_evening == 'true'
         run: |
