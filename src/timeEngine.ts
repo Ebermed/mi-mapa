@@ -89,7 +89,8 @@ function branchConnection(visitor:BranchKey,chart:Chart){
     if(match?.[1]==='support')return `El ${dayLabel} del día combina con el animal de ${area}. Las reuniones y tareas compartidas pueden resultar más sencillas.`
     if(match?.[1]==='clash')return `El ${dayLabel} del día es opuesto al animal de ${area}. Revisa horarios y acuerdos porque pueden surgir cambios de plan.`
   }
-  return ''
+  const birthLabel=branches[chart.pillars.year.branch].label
+  return `El animal del día es ${dayLabel} y el de tu año es ${birthLabel}. Entre ambos no aparece una relación especial.`
 }
 
 const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
