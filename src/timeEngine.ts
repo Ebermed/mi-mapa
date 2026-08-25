@@ -26,7 +26,7 @@ export const activities:Record<ActivityKey,{name:string;help:string;good:string[
   project:{name:'Iniciar o retomar un proyecto',help:'Primeras reuniones, planificación, tareas pendientes y ejecución.',good:['Arrancar','Ejecutar','Consolidar'],move:['Descansar','Desmontar']},
   responsibility:{name:'Asumir más responsabilidad',help:'Promociones, nuevas responsabilidades, coordinación y trabajo.',good:['Afianzar','Consolidar','Ajustar'],move:['Revisar','Descansar']},
   study:{name:'Estudiar o iniciar un curso',help:'Estudio, investigación, escritura, cursos y preparación.',good:['Arrancar','Revisar','Afianzar'],move:['Desmontar']},
-  travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con margen.',good:['Ejecutar','Mostrar','Arrancar'],move:['Descansar','Desmontar']},
+  travel:{name:'Viajar',help:'Traslados y viajes que conviene iniciar con tiempo suficiente.',good:['Ejecutar','Mostrar','Arrancar'],move:['Descansar','Desmontar']},
   negotiate:{name:'Pedir apoyo o negociar',help:'Apoyos, permisos, colaboración y conversaciones con acuerdos.',good:['Ajustar','Recibir','Reunir'],move:['Desmontar','Descansar']},
   social:{name:'Reunirte y conectar con gente',help:'Reuniones, celebraciones, convocatorias y colaboración.',good:['Reunir','Mostrar','Recibir'],move:['Descansar','Desmontar']},
   close:{name:'Cerrar, cancelar o depurar',help:'Terminar pendientes, recortar, cancelar y cerrar procesos.',good:['Desmontar','Depurar','Consolidar'],move:['Arrancar','Reunir']},
@@ -84,7 +84,7 @@ function branchConnection(visitor:BranchKey,chart:Chart){
   const dayLabel=branches[visitor].label
   for(const [key,pillar] of (Object.entries(chart.pillars) as [PillarKey,Pillar][]).filter(([key])=>!(chart.birth.timeUnknown&&key==='hour'))){
     const area=key==='year'?'tu año':key==='month'?'tu manera de avanzar':key==='day'?'tu centro':'tus proyectos'
-    if(pillar.branch===visitor)return `El ${dayLabel} del día también aparece en ${area}. La recomendación puede resultarte familiar.`
+    if(pillar.branch===visitor)return `El ${dayLabel} del día también aparece en ${area}. Las tareas recomendadas para hoy pueden resultarte conocidas.`
     const match=pairs.find(([pair])=>pair.includes(visitor)&&pair.includes(pillar.branch))
     if(match?.[1]==='support')return `El ${dayLabel} del día combina con el animal de ${area}. Las reuniones y tareas compartidas pueden resultar más sencillas.`
     if(match?.[1]==='clash')return `El ${dayLabel} del día es opuesto al animal de ${area}. Revisa horarios y acuerdos porque pueden surgir cambios de plan.`
