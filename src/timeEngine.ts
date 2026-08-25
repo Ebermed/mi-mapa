@@ -34,20 +34,19 @@ export const activities:Record<ActivityKey,{name:string;help:string;good:string[
 export type ActivityResult={date:string;state:'good'|'move'|'neutral';reading:DayReading;reason:string}
 
 const DAY_RHYTHMS=[
-  {name:'Arrancar',weight:10,body:'Este ritmo ayuda a convertir una intención clara en movimiento.',good:['empezar un curso','iniciar un proyecto','hacer una primera reunión'],margin:['cerrar una etapa de forma definitiva','tomar una decisión difícil de revertir']},
-  {name:'Depurar',weight:2,body:'Este ritmo ayuda a quitar peso, cerrar pendientes y dejar espacio para lo que sigue.',good:['vaciar pendientes','editar y recortar','ordenar archivos'],margin:['hacer un gran lanzamiento','asumir un compromiso largo']},
-  {name:'Reunir',weight:9,body:'Este ritmo acompaña lo que implica reunir personas, recursos, respuestas o piezas dispersas.',good:['cobrar pendientes','reunir al equipo','recibir entregas'],margin:['aceptar obligaciones poco claras','llenar la agenda']},
-  {name:'Ajustar',weight:5,body:'Este ritmo ayuda cuando varias partes necesitan acomodarse entre sí.',good:['negociar condiciones','repartir tareas','coordinar agendas'],margin:['forzar una decisión rápida','cambiar varias cosas a la vez']},
-  {name:'Afianzar',weight:10,body:'Este ritmo acompaña decisiones que ya pensaste y quieres sostener con firmeza.',good:['formalizar un acuerdo','definir una rutina','confirmar un plan'],margin:['cambiar de rumbo por impulso','improvisar una salida costosa']},
-  {name:'Ejecutar',weight:6,body:'Este ritmo pide manos a la obra y favorece convertir una decisión en algo concreto.',good:['enviar una propuesta','retomar una tarea','resolver un trámite'],margin:['abrir demasiados frentes','sumar compromisos']},
-  {name:'Desmontar',weight:-9,body:'Este ritmo ayuda a desarmar estructuras agotadas y recuperar espacio.',good:['cerrar un proceso obsoleto','cancelar un plan agotado','recortar gastos'],margin:['firmar un acuerdo largo','hacer un lanzamiento grande']},
-  {name:'Revisar',weight:-5,body:'Este ritmo agradece margen para probar, revisar y hacer cambios pequeños.',good:['probar un prototipo','revisar documentos','corregir errores'],margin:['asumir un compromiso difícil de revertir','hacer una compra impulsiva']},
-  {name:'Consolidar',weight:14,body:'Este ritmo ayuda a cerrar bien lo que ya venías trabajando.',good:['cerrar un proyecto','presentar un resultado','entregar trabajo'],margin:['abrir una discusión sin preparación','cambiar el objetivo al final']},
-  {name:'Captar',weight:8,body:'Este ritmo mueve respuestas, pagos, comentarios, entregas y recursos de regreso hacia ti.',good:['pedir retroalimentación','cobrar un pendiente','evaluar una oferta'],margin:['aceptar condiciones sin revisar','acumular tareas nuevas']},
-  {name:'Mostrar',weight:10,body:'Este ritmo abre puertas hacia afuera y acompaña la visibilidad.',good:['hacer una presentación','publicar un lanzamiento','conocer gente nueva'],margin:['guardar una conversación importante para última hora','exponer un tema privado']},
-  {name:'Pausa',weight:-5,body:'Este ritmo baja el volumen y favorece recuperar capacidad.',good:['hacer respaldos','cerrar pendientes menores','descansar'],margin:['hacer un lanzamiento importante','llenar la agenda']},
+  {name:'Arrancar',weight:10,body:'Elige una tarea pendiente y da el primer paso.',good:['empezar un curso','iniciar un proyecto','hacer una primera reunión'],margin:['cerrar una etapa de forma definitiva','tomar una decisión difícil de revertir']},
+  {name:'Depurar',weight:2,body:'Termina pendientes, ordena archivos o quita de tu agenda lo que ya estorba.',good:['vaciar pendientes','editar y recortar','ordenar archivos'],margin:['hacer un gran lanzamiento','asumir un compromiso largo']},
+  {name:'Reunir',weight:9,body:'Junta a las personas, respuestas o recursos que necesitas.',good:['cobrar pendientes','reunir al equipo','recibir entregas'],margin:['aceptar obligaciones poco claras','llenar la agenda']},
+  {name:'Ajustar',weight:5,body:'Revisa horarios, tareas y acuerdos para que las partes encajen.',good:['negociar condiciones','repartir tareas','coordinar agendas'],margin:['forzar una decisión rápida','cambiar varias cosas a la vez']},
+  {name:'Afianzar',weight:10,body:'Confirma una decisión, una rutina o un acuerdo que quieres mantener.',good:['formalizar un acuerdo','definir una rutina','confirmar un plan'],margin:['cambiar de rumbo por impulso','improvisar una salida costosa']},
+  {name:'Ejecutar',weight:6,body:'Toma una decisión que ya pensaste y conviértela en una acción.',good:['enviar una propuesta','retomar una tarea','resolver un trámite'],margin:['abrir demasiados frentes','sumar compromisos']},
+  {name:'Desmontar',weight:-9,body:'Cancela, recorta o termina algo que ya dejó de servirte.',good:['cerrar un proceso obsoleto','cancelar un plan agotado','recortar gastos'],margin:['firmar un acuerdo largo','hacer un lanzamiento grande']},
+  {name:'Revisar',weight:-5,body:'Prueba, corrige y vuelve a mirar los detalles antes de comprometerte.',good:['probar un prototipo','revisar documentos','corregir errores'],margin:['asumir un compromiso difícil de revertir','hacer una compra impulsiva']},
+  {name:'Consolidar',weight:14,body:'Termina y entrega algo que ya venías trabajando.',good:['cerrar un proyecto','presentar un resultado','entregar trabajo'],margin:['abrir una discusión sin preparación','cambiar el objetivo al final']},
+  {name:'Recibir',weight:8,body:'Pide respuestas, cobra pendientes o revisa lo que llegó.',good:['pedir retroalimentación','cobrar un pendiente','evaluar una oferta'],margin:['aceptar condiciones sin revisar','acumular tareas nuevas']},
+  {name:'Mostrar',weight:10,body:'Presenta, publica o comparte algo que quieres dar a conocer.',good:['hacer una presentación','publicar un lanzamiento','conocer gente nueva'],margin:['guardar una conversación importante para última hora','exponer un tema privado']},
+  {name:'Descansar',weight:-5,body:'Haz menos, termina pendientes pequeños y deja tiempo libre en tu agenda.',good:['hacer respaldos','cerrar pendientes menores','descansar'],margin:['hacer un lanzamiento importante','llenar la agenda']},
 ]
-
 const generates:Record<ElementKey,ElementKey>={wood:'fire',fire:'earth',earth:'metal',metal:'water',water:'wood'}
 const controls:Record<ElementKey,ElementKey>={wood:'earth',earth:'water',water:'fire',fire:'metal',metal:'wood'}
 const AREAS={
@@ -62,8 +61,8 @@ function pad(value:number){return String(value).padStart(2,'0')}
 export function dateKey(year:number,month:number,day:number){return `${year}-${pad(month)}-${pad(day)}`}
 export function partsFromKey(key:string){const [year,month,day]=key.split('-').map(Number);return{year,month,day}}
 export function shiftDate(key:string,days:number){const p=partsFromKey(key),d=new Date(Date.UTC(p.year,p.month-1,p.day+days));return dateKey(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())}
-export function todayInZone(timezone:string){
-  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
+export function todayInZone(timezone:string,now=new Date()){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now)
   const values=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]))
   return `${values.year}-${values.month}-${values.day}`
 }
@@ -78,16 +77,19 @@ function transitPillars(key:string,time='12:00'){
 }
 
 function branchConnection(visitor:BranchKey,chart:Chart){
-  const pairs:[[BranchKey,BranchKey],string][]=[
-    [['rat','ox'],'encuentra apoyo'],[['tiger','pig'],'encuentra apoyo'],[['rabbit','dog'],'encuentra apoyo'],[['dragon','rooster'],'encuentra apoyo'],[['snake','monkey'],'encuentra apoyo'],[['horse','goat'],'encuentra apoyo'],
-    [['rat','horse'],'pide ajustar ritmos'],[['ox','goat'],'pide ajustar ritmos'],[['tiger','monkey'],'pide ajustar ritmos'],[['rabbit','rooster'],'pide ajustar ritmos'],[['dragon','dog'],'pide ajustar ritmos'],[['snake','pig'],'pide ajustar ritmos'],
+  const pairs:[[BranchKey,BranchKey],'support'|'clash'][]=[
+    [['rat','ox'],'support'],[['tiger','pig'],'support'],[['rabbit','dog'],'support'],[['dragon','rooster'],'support'],[['snake','monkey'],'support'],[['horse','goat'],'support'],
+    [['rat','horse'],'clash'],[['ox','goat'],'clash'],[['tiger','monkey'],'clash'],[['rabbit','rooster'],'clash'],[['dragon','dog'],'clash'],[['snake','pig'],'clash'],
   ]
+  const dayLabel=branches[visitor].label
   for(const [key,pillar] of (Object.entries(chart.pillars) as [PillarKey,Pillar][]).filter(([key])=>!(chart.birth.timeUnknown&&key==='hour'))){
-    if(pillar.branch===visitor)return `El día repite el ritmo de ${key==='year'?'tu origen':key==='month'?'cómo avanzas':key==='day'?'tu centro':'lo que construyes'} y le da más volumen.`
+    const area=key==='year'?'tu año':key==='month'?'tu manera de avanzar':key==='day'?'tu centro':'tus proyectos'
+    if(pillar.branch===visitor)return `El ${dayLabel} del día también aparece en ${area}; esta recomendación puede resultarte especialmente familiar.`
     const match=pairs.find(([pair])=>pair.includes(visitor)&&pair.includes(pillar.branch))
-    if(match)return `El día ${match[1]} en ${key==='year'?'tu origen':key==='month'?'cómo avanzas':key==='day'?'tu centro':'lo que construyes'}.`
+    if(match?.[1]==='support')return `El ${dayLabel} del día combina bien con el animal de ${area}; las tareas compartidas pueden avanzar con mayor facilidad.`
+    if(match?.[1]==='clash')return `El ${dayLabel} del día es opuesto al animal de ${area}; deja espacio para cambios de plan y revisa antes de decidir.`
   }
-  return `El día suma un ritmo distinto a tus ${chart.birth.timeUnknown?'tres':'cuatro'} pilares y abre espacio para probar otra manera de avanzar.`
+  return `El ${dayLabel} del día aporta una forma de actuar distinta a las que aparecen en tu carta. Prueba la recomendación en una tarea concreta.`
 }
 
 const clashes:Record<BranchKey,BranchKey>={rat:'horse',ox:'goat',tiger:'monkey',rabbit:'rooster',dragon:'dog',snake:'pig',horse:'rat',goat:'ox',monkey:'tiger',rooster:'rabbit',dog:'dragon',pig:'snake'}
@@ -114,7 +116,7 @@ export function dayReading(chart:Chart,key:string):DayReading{
   const transit=transitPillars(key),monthIndex=branchOrder.indexOf(transit.month.branch),dayIndex=branchOrder.indexOf(transit.day.branch)
   const rhythm=DAY_RHYTHMS[(dayIndex-monthIndex+12)%12]
   const friction=clashes[transit.month.branch]===transit.day.branch?-10:0,score=Math.max(8,Math.min(94,60+rhythm.weight+friction+personalScore(transit.day.branch,chart)))
-  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score,personalClash:personalClashReading(chart,transit.day.branch)}
+  return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,headline:`${formatLongDate(key)} es un buen día para ${rhythm.name.toLowerCase()}.`,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin,personal:branchConnection(transit.day.branch,chart),score,personalClash:personalClashReading(chart,transit.day.branch)}
 }
 
 export function generalDayReading(key:string){
@@ -123,7 +125,7 @@ export function generalDayReading(key:string){
   return {date:key,pillar:transit.day,monthPillar:transit.month,rhythm:rhythm.name,body:rhythm.body,opportunity:rhythm.good,margin:rhythm.margin}
 }
 
-export function dayScoreLabel(score:number){if(score>=75)return 'Buen ritmo para avanzar';if(score>=60)return 'Hay espacio para moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Este día pide más margen'}
+export function dayScoreLabel(score:number){if(score>=75)return 'Buen día para avanzar';if(score>=60)return 'Puede ayudarte a moverlo';if(score>=45)return 'Conviene elegir bien la actividad';return 'Conviene dejar más margen'}
 
 export function classifyActivity(chart:Chart,key:string,activity:ActivityKey):ActivityResult{
   const reading=dayReading(chart,key),rule=activities[activity]
