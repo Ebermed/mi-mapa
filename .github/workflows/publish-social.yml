@@ -2,10 +2,10 @@ name: Fábrica de publicaciones MI MAPA
 
 on:
   schedule:
-    # 09:00 de Ciudad de México (UTC-6)
-    - cron: '0 15 * * *'
-    # 20:00 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
-    - cron: '0 2 * * 0,1,2,4,6'
+    # 09:07 de Ciudad de México (UTC-6), fuera del pico de la hora en punto
+    - cron: '7 15 * * *'
+    # 20:07 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
+    - cron: '7 2 * * 0,1,2,4,6'
   workflow_dispatch:
     inputs:
       format:
@@ -66,8 +66,8 @@ jobs:
           IS_EVENING='false'
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '0 15 * * *') FORMAT='hoy' ;;
-              '0 2 * * 0,1,2,4,6')
+              '7 15 * * *') FORMAT='hoy' ;;
+              '7 2 * * 0,1,2,4,6')
                 IS_EVENING='true'
                 STATE_FILE='public/social/state/last-evening-series.txt'
                 LAST=''
