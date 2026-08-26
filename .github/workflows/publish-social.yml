@@ -1,6 +1,10 @@
 name: Fábrica de publicaciones MI MAPA
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/social-publish-now'
   schedule:
     # Desde las 09:00 de Ciudad de México: reintenta cada 15 minutos hasta las 12:45.
     # El registro diario hace que solo la primera ejecución publique.
@@ -63,6 +67,7 @@ jobs:
         env:
           MANUAL_FORMAT: ${{ inputs.format }}
           SCHEDULE: ${{ github.event.schedule }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           FORMAT="$MANUAL_FORMAT"
           IS_EVENING='false'
@@ -70,6 +75,12 @@ jobs:
           SLOT=''
           SKIP='false'
           LOCAL_DATE="$(TZ=America/Mexico_City date +%F)"
+          if [ -z "$FORMAT" ] && [ "$EVENT_NAME" = 'push' ]; then
+            FORMAT='hoy'
+            IS_SCHEDULED='true'
+            SLOT='hoy'
+            echo "Publicación de recuperación solicitada."
+          fi
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
               '*/15 15-18 * * *')
