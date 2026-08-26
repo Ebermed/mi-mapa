@@ -15,6 +15,13 @@ type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; c
 type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
 
 const STORE='mi-mapa.library.v1'
+const MIGRATION_HASH='#migrar='
+function isSavedMap(value:unknown):value is SavedMap{
+  if(!value||typeof value!=='object')return false
+  const item=value as Partial<SavedMap>,input=item.input as Partial<BirthInput>|undefined
+  return typeof item.id==='string'&&typeof item.label==='string'&&typeof item.createdAt==='number'&&typeof item.completed==='boolean'&&
+    !!input&&typeof input.date==='string'&&typeof input.time==='string'&&typeof input.timezone==='string'
+}
 function useLiveToday(timezone:string){
   const [today,setToday]=useState(()=>todayInZone(timezone))
   useEffect(()=>{
@@ -97,9 +104,32 @@ const actionMeta:Record<TenGodKey,{name:string;copy:string}>={
 }
 
 function loadLibrary():SavedMap[]{
-  try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}
+  try{
+    const parsed=JSON.parse(localStorage.getItem(STORE)||'[]')
+    return Array.isArray(parsed)?parsed.filter(isSavedMap):[]
+  }catch{return []}
 }
 function persist(items:SavedMap[]){localStorage.setItem(STORE,JSON.stringify(items))}
+function decodeMigration(value:string):SavedMap[]{
+  try{
+    const base=value.replaceAll('-','+').replaceAll('_','/'),binary=atob(base)
+    const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0)),parsed=JSON.parse(new TextDecoder().decode(bytes))
+    return Array.isArray(parsed)?parsed.filter(isSavedMap):[]
+  }catch{return []}
+}
+function loadInitialLibrary(){
+  const current=loadLibrary()
+  if(!location.hash.startsWith(MIGRATION_HASH))return{items:current,imported:0,migrating:false}
+  const incoming=decodeMigration(location.hash.slice(MIGRATION_HASH.length))
+  const signatures=new Set(current.map(item=>`${item.input.name||''}|${item.input.date}|${item.input.time}|${item.input.timezone}`))
+  const additions=incoming.filter(item=>{
+    const signature=`${item.input.name||''}|${item.input.date}|${item.input.time}|${item.input.timezone}`
+    if(signatures.has(signature))return false
+    signatures.add(signature);return true
+  })
+  const items=[...additions,...current]
+  return{items,imported:additions.length,migrating:true}
+}
 function id(){return globalThis.crypto?.randomUUID?.()||`map-${Date.now()}`}
 function encodeJourney(input:BirthInput,step:number){
   const json=JSON.stringify({v:1,input,step})
@@ -137,19 +167,25 @@ function Brand({onNavigate}:{onNavigate?:(view:View)=>void}){
 }
 
 export default function App(){
+  const initialLibrary=useMemo(loadInitialLibrary,[])
   const shared=useMemo(()=>new URLSearchParams(location.search).get('c'),[])
   const route=useMemo(()=>location.hash==='#estudio-7m3p'?'estudio-7m3p':new URLSearchParams(location.search).get('vista'),[])
   const routeView:View|null=route==='hoy'?'today':route==='calendario'?'calendar':route==='mes'?'month':route==='ciclos'?'cycles':route==='carta'?'reading':route==='estudio-7m3p'?'studio':null
   const sharedJourney=useMemo(()=>shared?decodeJourney(shared):null,[shared])
-  const [library,setLibrary]=useState<SavedMap[]>(loadLibrary)
+  const [library,setLibrary]=useState<SavedMap[]>(initialLibrary.items)
   const [active,setActive]=useState<BirthInput|null>(sharedJourney?.input||null)
   const [view,setView]=useState<View>(routeView==='studio'?'studio':sharedJourney?(routeView||'stories'):library.length?'home':'form')
   const [storyStep,setStoryStep]=useState(sharedJourney?.step||0)
-  const [toast,setToast]=useState('')
+  const [toast,setToast]=useState(initialLibrary.imported?`${initialLibrary.imported} ${initialLibrary.imported===1?'carta recuperada':'cartas recuperadas'}`:'')
   const chart=useMemo(()=>active?calculateChart(active):null,[active])
   const theme=chart?elementMeta[chart.dayMaster.element]:null
   const style=theme?{'--accent':theme.color,'--accent-dark':theme.dark,'--accent-soft':theme.soft} as CSSProperties:undefined
 
+  useEffect(()=>{
+    if(!initialLibrary.migrating)return
+    if(initialLibrary.imported)persist(initialLibrary.items)
+    history.replaceState({},'',`${location.pathname}${location.search}`)
+  },[initialLibrary])
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),2800);return()=>clearTimeout(timer)},[toast])
   useEffect(()=>{
     const syncRoute=()=>{
@@ -390,7 +426,8 @@ function fitPosterText(ctx:CanvasRenderingContext2D,text:string,maxWidth:number,
 function posterLines(ctx:CanvasRenderingContext2D,text:string,maxWidth:number,maxLines=4){const words=text.split(/\s+/),lines:string[]=[];let line='';for(const word of words){const test=line?`${line} ${word}`:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;if(lines.length===maxLines-1)break}else line=test}if(line&&lines.length<maxLines)lines.push(line);const consumed=lines.join(' ').split(/\s+/).length;if(consumed<words.length)lines[lines.length-1]=`${lines[lines.length-1].replace(/[.,;:]?$/,'')}…`;return lines}
 function drawPosterText(ctx:CanvasRenderingContext2D,text:string,x:number,y:number,maxWidth:number,lineHeight:number,maxLines=4,align:CanvasTextAlign='left'){ctx.textAlign=align;const lines=posterLines(ctx,text,maxWidth,maxLines);lines.forEach((line,index)=>ctx.fillText(line,x,y+index*lineHeight));return y+lines.length*lineHeight}
 function drawPosterBase(ctx:CanvasRenderingContext2D,meta:(typeof elementMeta)[ElementKey]){const gradient=ctx.createLinearGradient(0,0,1080,1350);gradient.addColorStop(0,'#f5efe4');gradient.addColorStop(.58,'#eee4d5');gradient.addColorStop(1,'#e6d9c9');ctx.fillStyle=gradient;ctx.fillRect(0,0,1080,1350);ctx.save();ctx.strokeStyle='rgba(80,67,52,.16)';ctx.lineWidth=2;for(let ring=0;ring<8;ring++){ctx.beginPath();for(let x=-60;x<=1140;x+=38){const y=238+ring*112+Math.sin(x/102+ring*.8)*26+Math.cos(x/47+ring)*10;if(x===-60)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}ctx.strokeStyle=meta.color;ctx.globalAlpha=.54;ctx.lineWidth=4;ctx.setLineDash([14,14]);ctx.beginPath();ctx.moveTo(136,1000);ctx.bezierCurveTo(270,875,192,770,398,660);ctx.bezierCurveTo(590,560,590,400,850,324);ctx.stroke();ctx.setLineDash([]);ctx.restore();ctx.fillStyle='rgba(255,252,246,.82)';roundRect(ctx,46,46,988,1258,62);ctx.fill();ctx.strokeStyle='rgba(82,67,51,.16)';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=meta.dark;ctx.textAlign='left';ctx.font=posterFont(20,800);ctx.fillText('十  MI MAPA',88,100);ctx.textAlign='right';ctx.font=posterFont(15,700);ctx.fillText('UNA CARTA PARA ENTENDERTE',992,98)}
-function drawPosterFooter(ctx:CanvasRenderingContext2D,color:string){ctx.strokeStyle='rgba(60,50,42,.14)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(88,1208);ctx.lineTo(992,1208);ctx.stroke();ctx.fillStyle=color;ctx.textAlign='left';ctx.font=posterFont(17,800);ctx.fillText('DESCUBRE EL TUYO',88,1252);ctx.font=posterFont(16,500);ctx.fillText('ebermed.github.io/mi-mapa',88,1278);ctx.textAlign='right';ctx.font=posterFont(36,400);ctx.fillText('↗',990,1268)}
+function publicSiteLabel(){return location.hostname==='ebermed.github.io'?'ebermed.github.io/mi-mapa':'mi-mapa.github.io'}
+function drawPosterFooter(ctx:CanvasRenderingContext2D,color:string){ctx.strokeStyle='rgba(60,50,42,.14)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(88,1208);ctx.lineTo(992,1208);ctx.stroke();ctx.fillStyle=color;ctx.textAlign='left';ctx.font=posterFont(17,800);ctx.fillText('DESCUBRE EL TUYO',88,1252);ctx.font=posterFont(16,500);ctx.fillText(publicSiteLabel(),88,1278);ctx.textAlign='right';ctx.font=posterFont(36,400);ctx.fillText('↗',990,1268)}
 function drawLineIcon(ctx:CanvasRenderingContext2D,path:string,x:number,y:number,size:number,color:string,lineWidth=4){const scale=size/24;ctx.save();ctx.translate(x-size/2,y-size/2);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.fillStyle='transparent';ctx.lineWidth=lineWidth/scale;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke(new Path2D(path));ctx.restore()}
 function drawStemPosterIcon(ctx:CanvasRenderingContext2D,stem:StemKey,x:number,y:number,size:number,color:string){drawLineIcon(ctx,iconPaths[stem],x,y,size,color,Math.max(3,size/25))}
 function drawAnimalPosterIcon(ctx:CanvasRenderingContext2D,branch:keyof typeof branches,x:number,y:number,size:number,color:string){drawLineIcon(ctx,posterAnimalPaths[branch],x,y,size,color,Math.max(3,size/24))}

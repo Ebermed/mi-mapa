@@ -69,7 +69,8 @@ function animalIcon(ctx:CanvasRenderingContext2D,key:BranchKey|undefined,x:numbe
   if(!key)return;const scale=size/24;ctx.save();ctx.translate(x-size/2,y-size/2);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.lineWidth=5/scale;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke(new Path2D(animalPaths[key]));ctx.restore()
 }
 function brand(ctx:CanvasRenderingContext2D,color:string,series:string){ctx.fillStyle=color;ctx.textAlign='left';ctx.font=font(20,800);ctx.fillText('+  MI MAPA',72,88);ctx.textAlign='right';ctx.font=font(14,800);ctx.fillText(series.toUpperCase(),1008,86)}
-function footer(ctx:CanvasRenderingContext2D,color:string){ctx.strokeStyle='rgba(62,54,47,.16)';ctx.beginPath();ctx.moveTo(72,1236);ctx.lineTo(1008,1236);ctx.stroke();ctx.fillStyle=color;ctx.textAlign='left';ctx.font=font(18,800);ctx.fillText('TU CARTA COMPLETA ES GRATIS',72,1275);ctx.textAlign='right';ctx.font=font(15,600);ctx.fillText('ebermed.github.io/mi-mapa  ↗',1008,1275)}
+function publicSiteLabel(){return location.hostname==='ebermed.github.io'?'ebermed.github.io/mi-mapa':'mi-mapa.github.io'}
+function footer(ctx:CanvasRenderingContext2D,color:string){ctx.strokeStyle='rgba(62,54,47,.16)';ctx.beginPath();ctx.moveTo(72,1236);ctx.lineTo(1008,1236);ctx.stroke();ctx.fillStyle=color;ctx.textAlign='left';ctx.font=font(18,800);ctx.fillText('TU CARTA COMPLETA ES GRATIS',72,1275);ctx.textAlign='right';ctx.font=font(15,600);ctx.fillText(`${publicSiteLabel()}  ↗`,1008,1275)}
 
 function drawToday(ctx:CanvasRenderingContext2D,post:SocialPost){
   const meta=elementMeta[post.palette],action=post.displayHook||post.title.replace(/^HOY ·\s*/,'')
