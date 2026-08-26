@@ -114,12 +114,12 @@ jobs:
           fi
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '*/15 15-18 * * *')
+              '17 15 * * *')
                 FORMAT='hoy'
                 IS_SCHEDULED='true'
                 SLOT='hoy'
                 ;;
-              '*/15 2-4 * * 0,1,2,4,6')
+              '17 2 * * 0,1,2,4,6')
                 IS_EVENING='true'
                 IS_SCHEDULED='true'
                 SLOT='noche'
