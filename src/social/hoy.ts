@@ -22,7 +22,7 @@ export function buildHoyPost(date:string):HoyPost{
   const action=day.rhythm.toUpperCase()
   const hook=`Hoy es un buen día para ${day.rhythm.toLowerCase()}.`
   const curiosity=`El animal del día es ${animal.label}. En tu carta puedes ver cómo esta fecha se relaciona contigo.`
-  const cta='Descubre tu carta completa en MI MAPA. Toda la información y la app son gratis.'
+  const cta='Descubre tu carta completa gratis en mi-mapa.github.io.'
   return {
     date,
     title:`HOY · ${action}`,

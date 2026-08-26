@@ -1,0 +1,25 @@
+name: Verificar conexión social tras mudanza
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-social.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  instagram:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar cuenta y token de Instagram
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v23.0' }}
+        run: |
+          test -n "$IG_USER_ID"
+          test -n "$IG_ACCESS_TOKEN"
+          RESPONSE="$(curl --fail-with-body -sS "https://graph.instagram.com/$GRAPH_VERSION/$IG_USER_ID" --get --data-urlencode 'fields=id,username' --data-urlencode "access_token=$IG_ACCESS_TOKEN")"
+          echo "Conexión lista para @$(jq -r .username <<< "$RESPONSE")"

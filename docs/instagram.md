@@ -23,4 +23,4 @@ Los centros y animales rotan automáticamente. Los carruseles semanales se divid
 
 ## Estudio manual
 
-Abre `https://mi-mapa.github.io/#estudio-7m3p` para generar piezas aleatorias, descargar el PNG y copiar el caption. Esta ruta queda fuera de la navegación pública de MI MAPA.
+Abre `https://mi-mapa.github.io/estudio-7m3p` para generar piezas aleatorias, descargar el PNG y copiar el caption. Esta ruta queda fuera de la navegación pública de MI MAPA.

@@ -1,7 +1,7 @@
 import { branches, stems, type BranchKey, type StemKey } from '../engine'
 import { generalDayReading } from '../timeEngine'
 
-const CTA='Descubre tu carta completa en MI MAPA. Toda la información y la app son gratis.'
+const CTA='Descubre tu carta completa gratis en mi-mapa.github.io.'
 const centers:Record<StemKey,{hook:string;body:string}>={
   jia:{hook:'¿Empiezas antes de tener todo resuelto?',body:'Cuando ves una posibilidad, empiezas pronto y ajustas el plan mientras avanzas.'},
   yi:{hook:'¿Encuentras otra forma cuando el plan falla?',body:'Comparas opciones y pruebas otra forma de conseguir lo que querías.'},

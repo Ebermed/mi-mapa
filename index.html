@@ -4,11 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f2e9" />
+    <meta name="referrer" content="no-referrer" />
     <meta name="description" content="Tu carta BaZi explicada en palabras que sí se entienden." />
     <meta property="og:title" content="Mi Mapa · Este eres tú" />
     <meta property="og:description" content="Descubre de qué está hecha tu forma de decidir, actuar y relacionarte." />
     <meta property="og:url" content="https://mi-mapa.github.io/" />
     <link rel="canonical" href="https://mi-mapa.github.io/" />
+    <script>
+      (()=>{
+        const url=new URL(location.href),legacy=url.searchParams.get('vista'),hadChart=url.searchParams.has('c')
+        const paths={hoy:'/hoy',calendario:'/calendario',mes:'/mes',ciclos:'/ciclos',carta:'/yo','estudio-7m3p':'/estudio-7m3p'}
+        if(url.pathname==='/'&&legacy&&paths[legacy])url.pathname=paths[legacy]
+        else if(url.pathname==='/'&&hadChart)url.pathname='/historias'
+        url.searchParams.delete('c');url.searchParams.delete('vista')
+        if(url.toString()!==location.href)history.replaceState({},'',url)
+      })()
+    </script>
     <title>Mi Mapa · Este eres tú</title>
   </head>
   <body>

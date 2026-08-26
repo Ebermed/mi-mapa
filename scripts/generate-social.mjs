@@ -4,8 +4,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 const format=process.argv[2]||'hoy'
 const date=process.argv[3]||new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City'}).format(new Date())
 const outDir='public/social/generated'
-const CTA='Descubre tu carta completa en MI MAPA. Toda la información y la app son gratis.'
-const SITE_LABEL=process.env.GITHUB_REPOSITORY_OWNER?.toLowerCase()==='ebermed'?'ebermed.github.io/mi-mapa':'mi-mapa.github.io'
+const CTA='Descubre tu carta completa gratis en mi-mapa.github.io.'
+const SITE_LABEL='mi-mapa.github.io'
 const palettes={water:['#355d71','#6f91a2','#d5e4e8'],wood:['#3f5841','#71845d','#dce7d4'],fire:['#8f422d','#d4774c','#f6d9c9'],earth:['#735535','#b58b55','#ebddc5'],metal:['#555b5e','#8b8d8a','#e4e4e1']}
 const animalOrder=['rat','ox','tiger','rabbit','dragon','snake','horse','goat','monkey','rooster','dog','pig']
 const animals={rat:['Rata','子','water',1960],ox:['Buey','丑','earth',1961],tiger:['Tigre','寅','wood',1962],rabbit:['Conejo','卯','wood',1963],dragon:['Dragón','辰','earth',1964],snake:['Víbora','巳','fire',1965],horse:['Caballo','午','fire',1966],goat:['Cabra','未','earth',1967],monkey:['Mono','申','metal',1968],rooster:['Gallo','酉','metal',1969],dog:['Perro','戌','earth',1970],pig:['Cerdo','亥','water',1971]}
