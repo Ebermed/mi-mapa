@@ -2,10 +2,12 @@ name: Fábrica de publicaciones MI MAPA
 
 on:
   schedule:
-    # 09:25–09:40 de Ciudad de México (UTC-6): cuatro oportunidades por si GitHub retrasa una
-    - cron: '25,30,35,40 15 * * *'
-    # 20:25–20:40 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado
-    - cron: '25,30,35,40 2 * * 0,1,2,4,6'
+    # Desde las 09:00 de Ciudad de México: reintenta cada 15 minutos hasta las 12:45.
+    # El registro diario hace que solo la primera ejecución publique.
+    - cron: '*/15 15-18 * * *'
+    # Desde las 20:00 de Ciudad de México: domingo, lunes, miércoles, viernes y sábado.
+    # En UTC esos días corresponden al día siguiente.
+    - cron: '*/15 2-4 * * 0,1,2,4,6'
   workflow_dispatch:
     inputs:
       format:
@@ -41,6 +43,11 @@ jobs:
 
       - uses: actions/checkout@v4
         if: steps.connection.outputs.ready == 'true'
+      - name: Actualizar código y registros compartidos
+        if: steps.connection.outputs.ready == 'true'
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
       - uses: pnpm/action-setup@v4
         if: steps.connection.outputs.ready == 'true'
         with:
@@ -65,12 +72,12 @@ jobs:
           LOCAL_DATE="$(TZ=America/Mexico_City date +%F)"
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '25,30,35,40 15 * * *')
+              '*/15 15-18 * * *')
                 FORMAT='hoy'
                 IS_SCHEDULED='true'
                 SLOT='hoy'
                 ;;
-              '25,30,35,40 2 * * 0,1,2,4,6')
+              '*/15 2-4 * * 0,1,2,4,6')
                 IS_EVENING='true'
                 IS_SCHEDULED='true'
                 SLOT='noche'
