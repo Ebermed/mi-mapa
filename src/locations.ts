@@ -1,7 +1,17 @@
-export type BirthLocation = { city:string; country:string; timezone:string; longitude:number }
+import { worldLocationRows } from './worldLocations'
 
-export const locations:BirthLocation[] = [
-  {city:'Ciudad de México',country:'México',timezone:'America/Mexico_City',longitude:-99.13},
+export type BirthLocation = {
+  city:string
+  country:string
+  timezone:string
+  longitude:number
+  countryCode?:string
+  aliases?:readonly string[]
+  population?:number
+}
+
+const featuredLocations:BirthLocation[] = [
+  {city:'Ciudad de México',country:'México',timezone:'America/Mexico_City',longitude:-99.13,aliases:['CDMX','Mexico City']},
   {city:'Guadalajara',country:'México',timezone:'America/Mexico_City',longitude:-103.35},
   {city:'Monterrey',country:'México',timezone:'America/Monterrey',longitude:-100.31},
   {city:'Puebla',country:'México',timezone:'America/Mexico_City',longitude:-98.21},
@@ -57,8 +67,8 @@ export const locations:BirthLocation[] = [
   {city:'Tegucigalpa',country:'Honduras',timezone:'America/Tegucigalpa',longitude:-87.19},
   {city:'Managua',country:'Nicaragua',timezone:'America/Managua',longitude:-86.25},
   {city:'San José',country:'Costa Rica',timezone:'America/Costa_Rica',longitude:-84.09},
-  {city:'Ciudad de Panamá',country:'Panamá',timezone:'America/Panama',longitude:-79.52},
-  {city:'La Habana',country:'Cuba',timezone:'America/Havana',longitude:-82.38},
+  {city:'Ciudad de Panamá',country:'Panamá',timezone:'America/Panama',longitude:-79.52,aliases:['Panama City']},
+  {city:'La Habana',country:'Cuba',timezone:'America/Havana',longitude:-82.38,aliases:['Havana']},
   {city:'Santo Domingo',country:'Rep. Dominicana',timezone:'America/Santo_Domingo',longitude:-69.93},
   {city:'Bogotá',country:'Colombia',timezone:'America/Bogota',longitude:-74.07},
   {city:'Medellín',country:'Colombia',timezone:'America/Bogota',longitude:-75.56},
@@ -75,13 +85,13 @@ export const locations:BirthLocation[] = [
   {city:'Montevideo',country:'Uruguay',timezone:'America/Montevideo',longitude:-56.16},
   {city:'São Paulo',country:'Brasil',timezone:'America/Sao_Paulo',longitude:-46.63},
   {city:'Río de Janeiro',country:'Brasil',timezone:'America/Sao_Paulo',longitude:-43.17},
-  {city:'Los Ángeles',country:'Estados Unidos',timezone:'America/Los_Angeles',longitude:-118.24},
+  {city:'Los Ángeles',country:'Estados Unidos',timezone:'America/Los_Angeles',longitude:-118.24,aliases:['Los Angeles']},
   {city:'San Francisco',country:'Estados Unidos',timezone:'America/Los_Angeles',longitude:-122.42},
   {city:'Phoenix',country:'Estados Unidos',timezone:'America/Phoenix',longitude:-112.07},
   {city:'Houston',country:'Estados Unidos',timezone:'America/Chicago',longitude:-95.37},
   {city:'Chicago',country:'Estados Unidos',timezone:'America/Chicago',longitude:-87.63},
   {city:'Miami',country:'Estados Unidos',timezone:'America/New_York',longitude:-80.19},
-  {city:'Nueva York',country:'Estados Unidos',timezone:'America/New_York',longitude:-74.01},
+  {city:'Nueva York',country:'Estados Unidos',timezone:'America/New_York',longitude:-74.01,aliases:['New York']},
   {city:'Toronto',country:'Canadá',timezone:'America/Toronto',longitude:-79.38},
   {city:'Vancouver',country:'Canadá',timezone:'America/Vancouver',longitude:-123.12},
   {city:'Madrid',country:'España',timezone:'Europe/Madrid',longitude:-3.70},
@@ -89,22 +99,32 @@ export const locations:BirthLocation[] = [
   {city:'Valencia',country:'España',timezone:'Europe/Madrid',longitude:-0.38},
   {city:'Sevilla',country:'España',timezone:'Europe/Madrid',longitude:-5.98},
   {city:'Lisboa',country:'Portugal',timezone:'Europe/Lisbon',longitude:-9.14},
-  {city:'París',country:'Francia',timezone:'Europe/Paris',longitude:2.35},
-  {city:'Londres',country:'Reino Unido',timezone:'Europe/London',longitude:-0.13},
+  {city:'París',country:'Francia',timezone:'Europe/Paris',longitude:2.35,aliases:['Paris']},
+  {city:'Londres',country:'Reino Unido',timezone:'Europe/London',longitude:-0.13,aliases:['London']},
   {city:'Roma',country:'Italia',timezone:'Europe/Rome',longitude:12.50},
   {city:'Berlín',country:'Alemania',timezone:'Europe/Berlin',longitude:13.40},
   {city:'Ámsterdam',country:'Países Bajos',timezone:'Europe/Amsterdam',longitude:4.90},
-  {city:'Dubái',country:'E.A.U.',timezone:'Asia/Dubai',longitude:55.27},
-  {city:'Nueva Delhi',country:'India',timezone:'Asia/Kolkata',longitude:77.21},
+  {city:'Dubái',country:'E.A.U.',timezone:'Asia/Dubai',longitude:55.27,aliases:['Dubai']},
+  {city:'Nueva Delhi',country:'India',timezone:'Asia/Kolkata',longitude:77.21,aliases:['New Delhi']},
   {city:'Bangkok',country:'Tailandia',timezone:'Asia/Bangkok',longitude:100.50},
   {city:'Singapur',country:'Singapur',timezone:'Asia/Singapore',longitude:103.82},
   {city:'Hong Kong',country:'Hong Kong',timezone:'Asia/Hong_Kong',longitude:114.17},
-  {city:'Pekín',country:'China',timezone:'Asia/Shanghai',longitude:116.41},
-  {city:'Seúl',country:'Corea del Sur',timezone:'Asia/Seoul',longitude:126.98},
-  {city:'Tokio',country:'Japón',timezone:'Asia/Tokyo',longitude:139.69},
-  {city:'Sídney',country:'Australia',timezone:'Australia/Sydney',longitude:151.21},
+  {city:'Pekín',country:'China',timezone:'Asia/Shanghai',longitude:116.41,aliases:['Beijing']},
+  {city:'Seúl',country:'Corea del Sur',timezone:'Asia/Seoul',longitude:126.98,aliases:['Seoul']},
+  {city:'Tokio',country:'Japón',timezone:'Asia/Tokyo',longitude:139.69,aliases:['Tokyo']},
+  {city:'Sídney',country:'Australia',timezone:'Australia/Sydney',longitude:151.21,aliases:['Sydney']},
   {city:'Auckland',country:'Nueva Zelanda',timezone:'Pacific/Auckland',longitude:174.76},
 ]
+
+const spanishRegions=new Intl.DisplayNames(['es'],{type:'region'})
+const englishRegions=new Intl.DisplayNames(['en'],{type:'region'})
+const worldLocations:BirthLocation[]=worldLocationRows.map(([city,countryCode,timezone,longitude,population,alias])=>({
+  city,countryCode,timezone,longitude,population,
+  country:spanishRegions.of(countryCode)||countryCode,
+  aliases:alias?[alias]:[],
+})).filter(candidate=>!featuredLocations.some(featured=>featured.timezone===candidate.timezone&&Math.abs(featured.longitude-candidate.longitude)<.12))
+
+export const locations:BirthLocation[]=[...featuredLocations,...worldLocations]
 
 export function locationLabel(location:BirthLocation){return `${location.city}, ${location.country}`}
 
@@ -115,8 +135,10 @@ export function searchLocations(query:string,limit=8){
   if(!q)return []
   return locations.map(location=>{
     const city=normalize(location.city),country=normalize(location.country)
+    const aliases=normalize(location.aliases?.join(' ')||'')
+    const englishCountry=normalize(location.countryCode?englishRegions.of(location.countryCode)||'':'')
     const words=(value:string)=>value.split(' ').some(word=>word.startsWith(q))
-    const score=city.startsWith(q)?0:words(city)?1:country.startsWith(q)?2:words(country)?3:-1
+    const score=city===q?0:city.startsWith(q)?1:words(city)?2:aliases.startsWith(q)?3:words(aliases)?4:country.startsWith(q)?5:words(country)?6:englishCountry.startsWith(q)?7:words(englishCountry)?8:-1
     return {location,score}
-  }).filter(item=>item.score>=0).sort((a,b)=>a.score-b.score||a.location.city.length-b.location.city.length||a.location.city.localeCompare(b.location.city)).slice(0,limit).map(item=>item.location)
+  }).filter(item=>item.score>=0).sort((a,b)=>a.score-b.score||(b.location.population??Number.MAX_SAFE_INTEGER)-(a.location.population??Number.MAX_SAFE_INTEGER)||a.location.city.length-b.location.city.length||a.location.city.localeCompare(b.location.city)).slice(0,limit).map(item=>item.location)
 }
