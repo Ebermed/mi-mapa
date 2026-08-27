@@ -3,11 +3,17 @@ name: Fábrica de publicaciones MI MAPA
 on:
   repository_dispatch:
     types: [social-slot]
+  push:
+    branches: [main]
+    paths:
+      - '.github/social-trigger.txt'
   schedule:
-    # Respaldo de HOY a las 09:17 de Ciudad de México (UTC-6).
-    - cron: '17 15 * * *'
-    # Respaldo nocturno a las 20:17 de Ciudad de México.
-    - cron: '17 2 * * 0,1,2,4,6'
+    # Tres respaldos de HOY, expresados directamente en hora de Ciudad de México.
+    - cron: '17,37,57 9 * * *'
+      timezone: 'America/Mexico_City'
+    # Tres respaldos nocturnos los lunes, miércoles, viernes, sábados y domingos.
+    - cron: '17,37,57 20 * * 0,1,3,5,6'
+      timezone: 'America/Mexico_City'
   workflow_dispatch:
     inputs:
       format:
@@ -90,6 +96,29 @@ jobs:
             FORMAT="$(printf '%s\n' "${AVAILABLE[@]}" | shuf -n 1)"
             echo "Serie nocturna anterior: ${LAST:-ninguna}"
           }
+          if [ "$EVENT_NAME" = 'push' ]; then
+            read -r PUSH_SLOT PUSH_DATE _ < .github/social-trigger.txt
+            case "$PUSH_SLOT" in
+              hoy)
+                FORMAT='hoy'
+                IS_SCHEDULED='true'
+                SLOT='hoy'
+                ;;
+              noche)
+                IS_EVENING='true'
+                IS_SCHEDULED='true'
+                SLOT='noche'
+                choose_evening
+                ;;
+              *)
+                echo "Slot del reloj externo desconocido: $PUSH_SLOT"
+                exit 1
+                ;;
+            esac
+            if [[ "$PUSH_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              TARGET_DATE="$PUSH_DATE"
+            fi
+          fi
           if [ "$EVENT_NAME" = 'repository_dispatch' ]; then
             case "$DISPATCH_SLOT" in
               hoy)
@@ -114,20 +143,15 @@ jobs:
           fi
           if [ -z "$FORMAT" ]; then
             case "$SCHEDULE" in
-              '17 15 * * *')
+              '17,37,57 9 * * *')
                 FORMAT='hoy'
                 IS_SCHEDULED='true'
                 SLOT='hoy'
                 ;;
-              '17 2 * * 0,1,2,4,6')
+              '17,37,57 20 * * 0,1,3,5,6')
                 IS_EVENING='true'
                 IS_SCHEDULED='true'
                 SLOT='noche'
-                STATE_FILE='public/social/state/last-evening-series.txt'
-                LAST=''
-                if [ -f "$STATE_FILE" ]; then
-                  LAST="$(tr -d '\r\n' < "$STATE_FILE")"
-                fi
                 choose_evening
                 ;;
               *)
@@ -140,7 +164,7 @@ jobs:
             DAILY_STATE="public/social/state/$SLOT-$TARGET_DATE.txt"
             if [ -f "$DAILY_STATE" ]; then
               SKIP='true'
-              echo "La publicación automática de $SLOT ya salió el $LOCAL_DATE."
+              echo "La publicación automática de $SLOT ya salió el $TARGET_DATE."
             fi
           fi
           echo "value=$FORMAT" >> "$GITHUB_OUTPUT"
