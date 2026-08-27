@@ -1,13 +1,8 @@
 {
-  "format": "semana-a",
-  "date": "2026-08-26",
-  "caption": "Esta semana, cada animal tiene recomendaciones distintas. Busca el tuyo por año de nacimiento y descubre el resto de tu carta gratis en MI MAPA.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
+  "format": "hoy",
+  "date": "2026-08-27",
+  "caption": "Hoy es un buen día para depurar.\n\nTermina pendientes, ordena archivos o quita de tu agenda lo que ya estorba.\n\nEl animal del día es Gallo. En tu carta puedes ver cómo esta fecha se relaciona contigo.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
   "items": [
-    "semana-a-2026-08-26-1.jpg",
-    "semana-a-2026-08-26-2.jpg",
-    "semana-a-2026-08-26-3.jpg",
-    "semana-a-2026-08-26-4.jpg",
-    "semana-a-2026-08-26-5.jpg",
-    "semana-a-2026-08-26-6.jpg"
+    "hoy-2026-08-27-1.jpg"
   ]
 }
