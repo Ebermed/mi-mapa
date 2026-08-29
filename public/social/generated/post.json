@@ -1,8 +1,13 @@
 {
-  "format": "hoy",
+  "format": "semana-b",
   "date": "2026-08-28",
-  "caption": "Hoy es un buen día para reunir.\n\nJunta a las personas, respuestas o recursos que necesitas.\n\nEl animal del día es Perro. En tu carta puedes ver cómo esta fecha se relaciona contigo.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
+  "caption": "Esta semana, cada animal tiene recomendaciones distintas. Busca el tuyo por año de nacimiento y descubre el resto de tu carta gratis en MI MAPA.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
   "items": [
-    "hoy-2026-08-28-1.jpg"
+    "semana-b-2026-08-28-1.jpg",
+    "semana-b-2026-08-28-2.jpg",
+    "semana-b-2026-08-28-3.jpg",
+    "semana-b-2026-08-28-4.jpg",
+    "semana-b-2026-08-28-5.jpg",
+    "semana-b-2026-08-28-6.jpg"
   ]
 }
