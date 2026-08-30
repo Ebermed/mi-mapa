@@ -1,13 +1,8 @@
 {
-  "format": "semana-b",
+  "format": "hoy",
   "date": "2026-08-30",
-  "caption": "Esta semana, cada animal tiene recomendaciones distintas. Busca el tuyo por año de nacimiento y descubre el resto de tu carta gratis en MI MAPA.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
+  "caption": "Hoy es un buen día para afianzar.\n\nConfirma una decisión, una rutina o un acuerdo que quieres mantener.\n\nEl animal del día es Rata. En tu carta puedes ver cómo esta fecha se relaciona contigo.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
   "items": [
-    "semana-b-2026-08-30-1.jpg",
-    "semana-b-2026-08-30-2.jpg",
-    "semana-b-2026-08-30-3.jpg",
-    "semana-b-2026-08-30-4.jpg",
-    "semana-b-2026-08-30-5.jpg",
-    "semana-b-2026-08-30-6.jpg"
+    "hoy-2026-08-30-1.jpg"
   ]
 }
