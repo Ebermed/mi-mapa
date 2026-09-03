@@ -1,8 +1,13 @@
 {
-  "format": "hoy",
+  "format": "semana-b",
   "date": "2026-09-02",
-  "caption": "Hoy es un buen día para revisar.\n\nPrueba, corrige y vuelve a mirar los detalles antes de comprometerte.\n\nEl animal del día es Conejo. En tu carta puedes ver cómo esta fecha se relaciona contigo.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
+  "caption": "Esta semana, cada animal tiene recomendaciones distintas. Busca el tuyo por año de nacimiento y descubre el resto de tu carta gratis en MI MAPA.\n\nDescubre tu carta completa gratis en mi-mapa.github.io.",
   "items": [
-    "hoy-2026-09-02-1.jpg"
+    "semana-b-2026-09-02-1.jpg",
+    "semana-b-2026-09-02-2.jpg",
+    "semana-b-2026-09-02-3.jpg",
+    "semana-b-2026-09-02-4.jpg",
+    "semana-b-2026-09-02-5.jpg",
+    "semana-b-2026-09-02-6.jpg"
   ]
 }
