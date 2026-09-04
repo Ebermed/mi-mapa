@@ -1,6 +1,6 @@
 import {mkdir,readFile,writeFile} from 'node:fs/promises'
 
-const routes=['crear','historias','yo','perfiles','elementos','acciones','encuentros','vacio','ahora','carta','hoy','calendario','mes','ciclos','estudio-7m3p']
+const routes=['crear','historias','yo','perfiles','elementos','acciones','encuentros','vacio','ahora','carta','carta-pro','hoy','calendario','mes','ciclos','admin','estudio-7m3p']
 const source=await readFile('dist/index.html','utf8')
 
 for(const route of routes){

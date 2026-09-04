@@ -1,9 +1,9 @@
-export type View='home'|'form'|'stories'|'reading'|'pro'|'today'|'calendar'|'month'|'cycles'|'studio'
+export type View='home'|'form'|'stories'|'reading'|'pro'|'today'|'calendar'|'month'|'cycles'|'admin'|'studio'
 export type ReadingSection='perfiles'|'elementos'|'acciones'|'encuentros'|'vacio'|'ahora'|'carta-completa'
 export type AppRoute={view:View;section?:ReadingSection}
 
 export const viewPaths:Record<View,string>={
-  home:'/',form:'/crear',stories:'/historias',reading:'/yo',pro:'/carta-pro',today:'/hoy',calendar:'/calendario',month:'/mes',cycles:'/ciclos',studio:'/estudio-7m3p',
+  home:'/',form:'/crear',stories:'/historias',reading:'/yo',pro:'/carta-pro',today:'/hoy',calendar:'/calendario',month:'/mes',cycles:'/ciclos',admin:'/admin',studio:'/estudio-7m3p',
 }
 
 export const sectionPaths:Record<ReadingSection,string>={
@@ -20,6 +20,7 @@ const pathRoutes:Record<string,AppRoute>={
   '/calendario':{view:'calendar'},
   '/mes':{view:'month'},
   '/ciclos':{view:'cycles'},
+  '/admin':{view:'admin'},
   '/estudio-7m3p':{view:'studio'},
   ...Object.fromEntries(Object.entries(sectionPaths).map(([section,path])=>[path,{view:'reading',section:section as ReadingSection}])),
 }

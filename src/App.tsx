@@ -7,10 +7,12 @@ import {
   type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
 import SocialStudio from './SocialStudio'
+import AdminCenter from './AdminCenter'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
 import {pathForRoute,routeFromLocation,sanitizeLegacyUrl,type AppRoute,type ReadingSection,type View} from './routes'
 import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatFullDate, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
-import { consultantDirectory } from './consultants'
+import { loadDirectory } from './consultants'
+import { fetchPublicDirectory, supabaseConfigured } from './supabase'
 
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
 type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
@@ -200,7 +202,7 @@ export default function App(){
   const initialActive=useMemo(()=>activeItem(initialLibrary.items)?.input||null,[initialLibrary.items])
   const [library,setLibrary]=useState<SavedMap[]>(initialLibrary.items)
   const [active,setActive]=useState<BirthInput|null>(initialActive)
-  const [view,setView]=useState<View>(()=>initialRoute.view==='studio'?'studio':routeNeedsChart(initialRoute)?initialActive?initialRoute.view:'form':initialRoute.view==='form'?'form':library.length?'home':'form')
+  const [view,setView]=useState<View>(()=>initialRoute.view==='studio'||initialRoute.view==='admin'?initialRoute.view:routeNeedsChart(initialRoute)?initialActive?initialRoute.view:'form':initialRoute.view==='form'?'form':library.length?'home':'form')
   const [readingSection,setReadingSection]=useState<ReadingSection|undefined>(initialRoute.section)
   const [storyStep,setStoryStep]=useState(()=>initialRoute.view==='stories'?readStoryProgress(initialActive,initialLibrary.items):0)
   const pendingRoute=useRef<AppRoute|null>(routeNeedsChart(initialRoute)&&!initialActive?initialRoute:null)
@@ -265,6 +267,7 @@ export default function App(){
   return <div className={`app ${chart?`theme-${chart.dayMaster.element}`:'theme-neutral'}`} style={style}>
     <Watercolor/>
     {view==='studio'&&<Studio/>}
+    {view==='admin'&&<AdminCenter onExit={()=>go('home')}/>}
     {view==='home'&&<Home library={library} active={active} onOpen={open} onNew={()=>go('form',null)} onDelete={remove}/>}
     {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>}
     {view==='stories'&&chart&&<Stories chart={chart} step={storyStep} setStep={setStoryStep} onClose={finish} onSave={()=>saveLater(active!,library,storyStep,setToast)} onFinish={finish}/>}
@@ -554,22 +557,24 @@ function Reading({chart,section,onSection,onHome,onReplay,onTool}:{chart:Chart;s
 function ProChartPage({chart,active,library,onHome,onReading,onSwitch,onTool}:{chart:Chart;active:BirthInput;library:SavedMap[];onHome:()=>void;onReading:()=>void;onSwitch:(input:BirthInput)=>void;onTool:(view:View)=>void}){
   const gods=(Object.entries(chart.tenGods) as [TenGodKey,number][]).sort((a,b)=>b[1]-a[1]),maxGod=Math.max(1,...Object.values(chart.tenGods))
   const current=partsFromKey(todayInZone(chart.birth.timezone)),months=Array.from({length:12},(_,index)=>monthReading(chart,current.year,index+1)),correction=Math.round(chart.birth.solarCorrectionMinutes)
+  const [directory,setDirectory]=useState(loadDirectory)
+  useEffect(()=>{if(!supabaseConfigured)return;fetchPublicDirectory().then(setDirectory).catch(()=>{/* Se conserva la última versión disponible. */})},[])
   return <main className="proPage">
     <ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/>
     <section className="proHero"><div><p className="eyebrow">CARTA PRO · GRATUITA</p><h1>Todo tu BaZi,<br/><em>en una sola carta.</em></h1><p>La estructura tradicional completa con los nombres de Mi Mapa y una explicación para cada dato.</p></div><aside><Glyph stem={chart.dayMaster.stem} size={94}/><small>DÍA MAESTRO</small><strong>{identityMeta[chart.dayMaster.stem].name}</strong><span>{stems[chart.dayMaster.stem].han} · {stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</span></aside></section>
-    <nav className="proIndex" aria-label="Secciones de Carta Pro"><a href="#pro-pilares">Pilares</a><a href="#pro-perfiles">Perfiles</a><a href="#pro-meses">Meses</a><a href="#pro-consultantes">Lectura personal</a></nav>
+    <nav className="proIndex" aria-label="Secciones de Carta Pro"><a href="#pro-pilares">Pilares</a><a href="#pro-perfiles">Perfiles</a><a href="#pro-meses">Meses</a>{directory.enabled&&<a href="#pro-consultantes">Lectura personal</a>}</nav>
     <section className="proIdentity"><div><small>PERSONA</small><b>{chart.birth.name||'Mi carta'}</b><span>{formatFullDate(chart.birth.date)} · {chart.birth.place}</span></div><div><small>HORA REGISTRADA</small><b>{chart.birth.timeUnknown?'Abierta':chart.birth.time}</b><span>{chart.birth.timeUnknown?'Tres pilares natales disponibles':'Dato ingresado al crear la carta'}</span></div><div><small>HORA SOLAR</small><b>{chart.birth.timeUnknown?'Abierta':chart.birth.calculationTime}</b><span>{correction>=0?'+':''}{correction} minutos de corrección</span></div></section>
     <div id="pro-pilares"><ExpertChart chart={chart}/></div>
     <section className="readingSection proGods" id="pro-perfiles"><SectionHead kicker="TUS DIEZ PERFILES" title="La relación de cada elemento con tu Día Maestro."/><div className="proGodGrid">{gods.map(([key,value])=><article key={key}><header><span>{actionMeta[key].name}</span><b>{value}</b></header><div><i style={{width:`${Math.max(5,value/maxGod*100)}%`}}/></div><p>{actionMeta[key].copy}</p><Technical>{key.replace('_',' ')}</Technical></article>)}</div></section>
     <section className="readingSection proMonths" id="pro-meses"><SectionHead kicker={`${current.year} · INFLUENCIA MENSUAL`} title="Los doce meses solares de tu año."/><div>{months.map(month=><article key={month.month}><small>{monthLabel(month.year,month.month).toUpperCase()}</small><Glyph stem={month.pillar.stem} size={42}/><AnimalGlyph branch={month.pillar.branch} size={42}/><h3>{month.area.title}</h3><p>{month.headline}</p><Technical>{pillarLabel(month.pillar)}</Technical></article>)}</div><button className="primary" onClick={()=>onTool('month')}>Abrir explicación mensual <span>→</span></button></section>
-    <ConsultantInvitation/>
+    <ConsultantInvitation directory={directory}/>
     <footer><Brand/><p>La carta profesional también pertenece a todo el mundo.</p><button onClick={onReading}>Volver a mi lectura</button></footer>
   </main>
 }
 
-function ConsultantInvitation(){
-  if(!consultantDirectory.enabled)return null
-  const visible=consultantDirectory.consultants.filter(item=>item.active)
+function ConsultantInvitation({directory}:{directory:ReturnType<typeof loadDirectory>}){
+  if(!directory.enabled)return null
+  const visible=directory.consultants.filter(item=>item.active)
   return <section className="readingSection consultantDirectory" id="pro-consultantes"><SectionHead kicker="CONSULTANTES" title="Profundiza en las preguntas que te importan."/><div>{visible.map(item=><article key={item.id}>{item.photo&&<img src={item.photo} alt=""/>}<small>{item.specialties.join(' · ')}</small><h3>{item.name}</h3><p>{item.description}</p><span>{item.modalities.join(' y ')} · {item.durationMinutes} min · {item.priceLabel}</span><a className="primary" href={item.contactUrl}>Solicitar una lectura →</a></article>)}</div></section>
 }
 
