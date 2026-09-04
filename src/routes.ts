@@ -1,9 +1,9 @@
-export type View='home'|'form'|'stories'|'reading'|'today'|'calendar'|'month'|'cycles'|'studio'
+export type View='home'|'form'|'stories'|'reading'|'pro'|'today'|'calendar'|'month'|'cycles'|'studio'
 export type ReadingSection='perfiles'|'elementos'|'acciones'|'encuentros'|'vacio'|'ahora'|'carta-completa'
 export type AppRoute={view:View;section?:ReadingSection}
 
 export const viewPaths:Record<View,string>={
-  home:'/',form:'/crear',stories:'/historias',reading:'/yo',today:'/hoy',calendar:'/calendario',month:'/mes',cycles:'/ciclos',studio:'/estudio-7m3p',
+  home:'/',form:'/crear',stories:'/historias',reading:'/yo',pro:'/carta-pro',today:'/hoy',calendar:'/calendario',month:'/mes',cycles:'/ciclos',studio:'/estudio-7m3p',
 }
 
 export const sectionPaths:Record<ReadingSection,string>={
@@ -15,6 +15,7 @@ const pathRoutes:Record<string,AppRoute>={
   '/crear':{view:'form'},
   '/historias':{view:'stories'},
   '/yo':{view:'reading'},
+  '/carta-pro':{view:'pro'},
   '/hoy':{view:'today'},
   '/calendario':{view:'calendar'},
   '/mes':{view:'month'},
