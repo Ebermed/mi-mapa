@@ -568,7 +568,7 @@ function ProChartPage({chart,active,library,onHome,onReading,onSwitch,onTool}:{c
 }
 
 function ConsultantInvitation(){
-  if(!consultantDirectory.enabled)return <section className="readingSection consultantSoon" id="pro-consultantes"><p className="eyebrow">LECTURAS PERSONALES</p><h2>Muy pronto podrás profundizar tu carta con una consultante.</h2><p>La Carta Pro y todas sus explicaciones seguirán disponibles gratuitamente.</p></section>
+  if(!consultantDirectory.enabled)return null
   const visible=consultantDirectory.consultants.filter(item=>item.active)
   return <section className="readingSection consultantDirectory" id="pro-consultantes"><SectionHead kicker="CONSULTANTES" title="Profundiza en las preguntas que te importan."/><div>{visible.map(item=><article key={item.id}>{item.photo&&<img src={item.photo} alt=""/>}<small>{item.specialties.join(' · ')}</small><h3>{item.name}</h3><p>{item.description}</p><span>{item.modalities.join(' y ')} · {item.durationMinutes} min · {item.priceLabel}</span><a className="primary" href={item.contactUrl}>Solicitar una lectura →</a></article>)}</div></section>
 }
