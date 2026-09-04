@@ -6,6 +6,8 @@ describe('rutas públicas',()=>{
     expect(routeFromLocation('/hoy')).toEqual({view:'today'})
     expect(routeFromLocation('/calendario/')).toEqual({view:'calendar'})
     expect(routeFromLocation('/carta')).toEqual({view:'reading',section:'carta-completa'})
+    expect(routeFromLocation('/carta-pro')).toEqual({view:'pro'})
+    expect(routeFromLocation('/admin')).toEqual({view:'admin'})
     expect(pathForRoute({view:'reading',section:'perfiles'})).toBe('/perfiles')
   })
 

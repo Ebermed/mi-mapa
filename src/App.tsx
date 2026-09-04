@@ -7,9 +7,12 @@ import {
   type AuxiliaryPillarKey, type BirthInput, type Chart, type ElementKey, type Pillar, type PillarKey, type StemKey, type TenGodKey,
 } from './engine'
 import SocialStudio from './SocialStudio'
+import AdminCenter from './AdminCenter'
 import { locationLabel, searchLocations, type BirthLocation } from './locations'
 import {pathForRoute,routeFromLocation,sanitizeLegacyUrl,type AppRoute,type ReadingSection,type View} from './routes'
 import { activities, classifyActivity, cycleReading, dateKey, dayReading, dayScoreLabel, formatFullDate, formatLongDate, monthLabel, monthReading, partsFromKey, searchActivityYear, shiftDate, todayInZone, type ActivityKey } from './timeEngine'
+import { loadDirectory } from './consultants'
+import { fetchPublicDirectory, supabaseConfigured } from './supabase'
 
 type SavedMap = { id:string; label:string; input:BirthInput; createdAt:number; completed:boolean }
 type ShareKind = 'identity'|'profiles'|'elements'|'actions'|'summary'|'today'
@@ -163,7 +166,7 @@ function loadInitialLibrary(){
   return{items,imported:additions.length,migrating:true}
 }
 function id(){return globalThis.crypto?.randomUUID?.()||`map-${Date.now()}`}
-function routeNeedsChart(route:AppRoute){return route.view==='stories'||route.view==='reading'||route.view==='today'||route.view==='calendar'||route.view==='month'||route.view==='cycles'}
+function routeNeedsChart(route:AppRoute){return route.view==='stories'||route.view==='reading'||route.view==='pro'||route.view==='today'||route.view==='calendar'||route.view==='month'||route.view==='cycles'}
 
 const sanitizedStartup=sanitizeLegacyUrl(window.location.href)
 if(sanitizedStartup.changed)history.replaceState({},'',sanitizedStartup.url)
@@ -181,6 +184,7 @@ function ElementMark({element}:{element:ElementKey}){
 
 const menuItems:{view:View;label:string;hint:string;mark:string}[]=[
   {view:'reading',label:'Mi lectura',hint:'Tu carta completa',mark:'十'},
+  {view:'pro',label:'Carta Pro',hint:'Todos tus datos técnicos',mark:'命'},
   {view:'today',label:'Hoy',hint:'Tu oportunidad del día',mark:'☀'},
   {view:'calendar',label:'Calendario',hint:'Explora y busca fechas',mark:'▦'},
   {view:'month',label:'Tu mes',hint:'El foco de este mes',mark:'◐'},
@@ -198,7 +202,7 @@ export default function App(){
   const initialActive=useMemo(()=>activeItem(initialLibrary.items)?.input||null,[initialLibrary.items])
   const [library,setLibrary]=useState<SavedMap[]>(initialLibrary.items)
   const [active,setActive]=useState<BirthInput|null>(initialActive)
-  const [view,setView]=useState<View>(()=>initialRoute.view==='studio'?'studio':routeNeedsChart(initialRoute)?initialActive?initialRoute.view:'form':initialRoute.view==='form'?'form':library.length?'home':'form')
+  const [view,setView]=useState<View>(()=>initialRoute.view==='studio'||initialRoute.view==='admin'?initialRoute.view:routeNeedsChart(initialRoute)?initialActive?initialRoute.view:'form':initialRoute.view==='form'?'form':library.length?'home':'form')
   const [readingSection,setReadingSection]=useState<ReadingSection|undefined>(initialRoute.section)
   const [storyStep,setStoryStep]=useState(()=>initialRoute.view==='stories'?readStoryProgress(initialActive,initialLibrary.items):0)
   const pendingRoute=useRef<AppRoute|null>(routeNeedsChart(initialRoute)&&!initialActive?initialRoute:null)
@@ -263,10 +267,12 @@ export default function App(){
   return <div className={`app ${chart?`theme-${chart.dayMaster.element}`:'theme-neutral'}`} style={style}>
     <Watercolor/>
     {view==='studio'&&<Studio/>}
+    {view==='admin'&&<AdminCenter onExit={()=>go('home')}/>}
     {view==='home'&&<Home library={library} active={active} onOpen={open} onNew={()=>go('form',null)} onDelete={remove}/>}
-    {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>} 
+    {view==='form'&&<BirthForm onSubmit={start} onBack={library.length?()=>go('home',null):undefined}/>}
     {view==='stories'&&chart&&<Stories chart={chart} step={storyStep} setStep={setStoryStep} onClose={finish} onSave={()=>saveLater(active!,library,storyStep,setToast)} onFinish={finish}/>}
     {view==='reading'&&chart&&<Reading chart={chart} section={readingSection} onSection={openReadingSection} onHome={()=>go('home',null)} onReplay={()=>{setStoryStep(readStoryProgress(active,library));go('stories')}} onTool={target=>go(target)}/>}
+    {view==='pro'&&chart&&active&&<ProChartPage chart={chart} active={active} library={library} onHome={()=>go('home',null)} onReading={()=>go('reading')} onSwitch={input=>go('pro',input,true)} onTool={target=>go(target)}/>}
     {view==='today'&&chart&&active&&<TodayPage chart={chart} library={library} active={active} onSwitch={input=>go('today',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
     {view==='calendar'&&chart&&active&&<CalendarPage chart={chart} library={library} active={active} onSwitch={input=>go('calendar',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
     {view==='month'&&chart&&active&&<MonthPage chart={chart} library={library} active={active} onSwitch={input=>go('month',input,true)} onHome={()=>go('home',null)} onReading={()=>go('reading')} onTool={target=>go(target)}/>}
@@ -531,7 +537,7 @@ function Reading({chart,section,onSection,onHome,onReplay,onTool}:{chart:Chart;s
         <a href="#encuentros" onClick={event=>jumpTo(event,'encuentros')}><i/>Encuentros<small>Choques y armonías internas</small></a>
         <a href="#vacio" onClick={event=>jumpTo(event,'vacio')}><i/>Tu vacío<small>Lo que construyes a tu manera</small></a>
         <a href="#ahora" onClick={event=>jumpTo(event,'ahora')}><i/>Tu momento actual<small>Hoy, calendario, mes y ciclo</small></a>
-        <a href="#carta-completa" onClick={event=>jumpTo(event,'carta-completa')}><i/>Carta completa<small>La estructura para ojos expertos</small></a>
+        <a href="/carta-pro" onClick={event=>{event.preventDefault();onTool('pro')}}><i/>Carta Pro<small>Todos los cálculos tradicionales</small></a>
       </nav></aside>
       <div className="readingContent">
         <section className="readingSection" id="perfiles"><SectionHead kicker={`TUS ${profileCountLabel(chart).toUpperCase()} PERFILES`} title="Cómo actúas en distintas partes de tu vida."/><div className="longProfiles">{profileOrder(chart).map(key=>{const p=chart.pillars[key],r=pillarReading(key,p);return <article key={key}><div><Glyph stem={p.stem} size={58}/><span><small>{pillarMeta[key].eyebrow}</small><h3>{identityMeta[p.stem].name}</h3><em>{pillarMeta[key].title}</em></span></div><p>{r.body}</p><Technical>{pillarLabel(p)}</Technical></article>})}</div><ShareActions kind="profiles" chart={chart} shareLabel="Compartir mis perfiles"/></section>
@@ -547,6 +553,31 @@ function Reading({chart,section,onSection,onHome,onReplay,onTool}:{chart:Chart;s
     <footer><Brand/><p>BaZi por dentro. Palabras de todos los días por fuera.</p><button onClick={onHome}>Volver a mis cartas</button></footer>
   </main>
 }
+
+function ProChartPage({chart,active,library,onHome,onReading,onSwitch,onTool}:{chart:Chart;active:BirthInput;library:SavedMap[];onHome:()=>void;onReading:()=>void;onSwitch:(input:BirthInput)=>void;onTool:(view:View)=>void}){
+  const gods=(Object.entries(chart.tenGods) as [TenGodKey,number][]).sort((a,b)=>b[1]-a[1]),maxGod=Math.max(1,...Object.values(chart.tenGods))
+  const current=partsFromKey(todayInZone(chart.birth.timezone)),months=Array.from({length:12},(_,index)=>monthReading(chart,current.year,index+1)),correction=Math.round(chart.birth.solarCorrectionMinutes)
+  const [directory,setDirectory]=useState(loadDirectory)
+  useEffect(()=>{if(!supabaseConfigured)return;fetchPublicDirectory().then(setDirectory).catch(()=>{/* Se conserva la última versión disponible. */})},[])
+  return <main className="proPage">
+    <ToolHeader chart={chart} library={library} active={active} onSwitch={onSwitch} onHome={onHome} onReading={onReading} onTool={onTool}/>
+    <section className="proHero"><div><p className="eyebrow">CARTA PRO · GRATUITA</p><h1>Todo tu BaZi,<br/><em>en una sola carta.</em></h1><p>La estructura tradicional completa con los nombres de Mi Mapa y una explicación para cada dato.</p></div><aside><Glyph stem={chart.dayMaster.stem} size={94}/><small>DÍA MAESTRO</small><strong>{identityMeta[chart.dayMaster.stem].name}</strong><span>{stems[chart.dayMaster.stem].han} · {stems[chart.dayMaster.stem].label} · {chart.dayMaster.strength}</span></aside></section>
+    <nav className="proIndex" aria-label="Secciones de Carta Pro"><a href="#pro-pilares">Pilares</a><a href="#pro-perfiles">Perfiles</a><a href="#pro-meses">Meses</a>{directory.enabled&&<a href="#pro-consultantes">Lectura personal</a>}</nav>
+    <section className="proIdentity"><div><small>PERSONA</small><b>{chart.birth.name||'Mi carta'}</b><span>{formatFullDate(chart.birth.date)} · {chart.birth.place}</span></div><div><small>HORA REGISTRADA</small><b>{chart.birth.timeUnknown?'Abierta':chart.birth.time}</b><span>{chart.birth.timeUnknown?'Tres pilares natales disponibles':'Dato ingresado al crear la carta'}</span></div><div><small>HORA SOLAR</small><b>{chart.birth.timeUnknown?'Abierta':chart.birth.calculationTime}</b><span>{correction>=0?'+':''}{correction} minutos de corrección</span></div></section>
+    <div id="pro-pilares"><ExpertChart chart={chart}/></div>
+    <section className="readingSection proGods" id="pro-perfiles"><SectionHead kicker="TUS DIEZ PERFILES" title="La relación de cada elemento con tu Día Maestro."/><div className="proGodGrid">{gods.map(([key,value])=><article key={key}><header><span>{actionMeta[key].name}</span><b>{value}</b></header><div><i style={{width:`${Math.max(5,value/maxGod*100)}%`}}/></div><p>{actionMeta[key].copy}</p><Technical>{key.replace('_',' ')}</Technical></article>)}</div></section>
+    <section className="readingSection proMonths" id="pro-meses"><SectionHead kicker={`${current.year} · INFLUENCIA MENSUAL`} title="Los doce meses solares de tu año."/><div>{months.map(month=><article key={month.month}><small>{monthLabel(month.year,month.month).toUpperCase()}</small><Glyph stem={month.pillar.stem} size={42}/><AnimalGlyph branch={month.pillar.branch} size={42}/><h3>{month.area.title}</h3><p>{month.headline}</p><Technical>{pillarLabel(month.pillar)}</Technical></article>)}</div><button className="primary" onClick={()=>onTool('month')}>Abrir explicación mensual <span>→</span></button></section>
+    <ConsultantInvitation directory={directory}/>
+    <footer><Brand/><p>La carta profesional también pertenece a todo el mundo.</p><button onClick={onReading}>Volver a mi lectura</button></footer>
+  </main>
+}
+
+function ConsultantInvitation({directory}:{directory:ReturnType<typeof loadDirectory>}){
+  if(!directory.enabled)return null
+  const visible=directory.consultants.filter(item=>item.active)
+  return <section className="readingSection consultantDirectory" id="pro-consultantes"><SectionHead kicker="CONSULTANTES" title="Profundiza en las preguntas que te importan."/><div>{visible.map(item=><article key={item.id}>{item.photo&&<img src={item.photo} alt=""/>}<small>{item.specialties.join(' · ')}</small><h3>{item.name}</h3><p>{item.description}</p><span>{item.modalities.join(' y ')} · {item.durationMinutes} min · {item.priceLabel}</span><a className="primary" href={item.contactUrl}>Solicitar una lectura →</a></article>)}</div></section>
+}
+
 function ExpertChart({chart}:{chart:Chart}){
   const order:TechnicalPillarKey[]=chart.birth.timeUnknown?['year','month','day','conception','life']:['year','month','day','hour','conception','life']
   const [pick,setPick]=useState<{pillar:TechnicalPillarKey;kind:'stem'|'branch'|'hidden'|'void';stem?:StemKey}>({pillar:order[0],kind:'stem'})
